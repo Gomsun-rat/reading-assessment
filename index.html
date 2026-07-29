@@ -1,0 +1,1170 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Volume2, VolumeX, Award, Star, ArrowRight, RotateCcw, 
+  CheckCircle2, XCircle, Sparkles, HelpCircle, ChevronRight, 
+  ChevronDown, ChevronUp, MoveVertical, Play, Pause, Anchor,
+  Compass, Shield, RefreshCw, User, BookOpen, Smile, Sparkle
+} from 'lucide-react';
+
+const createAudioContext = () => {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  return AudioContext ? new AudioContext() : null;
+};
+
+const playSoundEffect = (type) => {
+  try {
+    const ctx = createAudioContext();
+    if (!ctx) return;
+
+    if (type === 'success') {
+      const now = ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.25);
+      });
+    } else if (type === 'error') {
+      const now = ctx.currentTime;
+      [220, 196].forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.12, now + idx * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.18);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.12);
+        osc.stop(now + idx * 0.12 + 0.2);
+      });
+    } else if (type === 'pop') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.06);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.06);
+    } else if (type === 'celebrate') {
+      const now = ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, now + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.06);
+        osc.stop(now + 1.3);
+      });
+    }
+  } catch (e) {
+    console.warn('Audio effect playback failed', e);
+  }
+};
+
+const READ_ASSESSMENT_DATA = {
+  A1: {
+    id: 'A1',
+    levelTitle: 'Level 1: Beginner (A1)',
+    cefrBadge: 'CEFR A1 • Word-by-Word & Literal Facts',
+    topic: 'The Playful Dolphin',
+    avatar: '🐬',
+    bgGradient: 'from-cyan-500 to-blue-600',
+    passageTitle: 'The Playful Dolphin',
+    readingTip: 'Read word by word. Focus on simple facts!',
+    passageParagraphs: [
+      {
+        text: 'This is a dolphin. Dolphins live in the warm {ocean}. The ocean is big and blue.',
+        highlights: {
+          ocean: { word: 'ocean', emoji: '🌊', definition: 'A big blue sea with water.' }
+        }
+      },
+      {
+        text: 'Dolphins are not fish. They are {mammals}. Dolphins need air. They {jump} out of the water to get air.',
+        highlights: {
+          mammals: { word: 'mammals', emoji: '🫁', definition: 'Animals that breathe air and feed milk to babies.' },
+          jump: { word: 'jump', emoji: '🐬', definition: 'To leap up into the air.' }
+        }
+      },
+      {
+        text: 'Dolphins are smart and friendly. They eat small {fish} and swim fast with friends.',
+        highlights: {
+          fish: { word: 'fish', emoji: '🐟', definition: 'Small animals that swim in water.' }
+        }
+      }
+    ],
+    questions: [
+      {
+        id: 'q1_a1',
+        type: 'multiple_choice_image',
+        prompt: 'Where do dolphins live?',
+        subtitle: 'Literal detail check:',
+        options: [
+          { id: 'a', text: 'In a forest', icon: '🌲', imageAlt: 'Forest' },
+          { id: 'b', text: 'In the warm ocean', icon: '🌊', imageAlt: 'Ocean', isCorrect: true },
+          { id: 'c', text: 'On a farm', icon: '🚜', imageAlt: 'Farm' }
+        ]
+      },
+      {
+        id: 'q2_a1',
+        type: 'true_false',
+        prompt: 'Dolphins can breathe underwater like fish.',
+        subtitle: 'Fact check from story:',
+        correctValue: false,
+        explanation: 'False! Dolphins are mammals and jump up to get air.'
+      },
+      {
+        id: 'q3_a1',
+        type: 'matching',
+        prompt: 'Read each sentence and tap its picture!',
+        pairs: [
+          { id: 'm1', sentence: 'This animal is a dolphin.', icon: '🐬' },
+          { id: 'm2', sentence: 'The ocean is big and blue.', icon: '🌊' },
+          { id: 'm3', sentence: 'Dolphins eat small fish.', icon: '🐟' }
+        ]
+      },
+      {
+        id: 'q4_a1',
+        type: 'multiple_choice_text',
+        prompt: 'What do dolphins eat?',
+        subtitle: 'Local detail search:',
+        options: [
+          { id: 'a', text: 'Apples and bananas', isCorrect: false },
+          { id: 'b', text: 'Small fish', isCorrect: true },
+          { id: 'c', text: 'Bread and cheese', isCorrect: false }
+        ]
+      },
+      {
+        id: 'q5_a1',
+        type: 'multiple_choice_text',
+        prompt: 'Why do dolphins jump out of the water?',
+        subtitle: 'Simple cause and effect:',
+        options: [
+          { id: 'a', text: 'To get air to breathe', isCorrect: true },
+          { id: 'b', text: 'To sleep on a tree', isCorrect: false },
+          { id: 'c', text: 'To run on sand', isCorrect: false }
+        ]
+      }
+    ]
+  },
+
+  A2: {
+    id: 'A2',
+    levelTitle: 'Level 2: Elementary (A2)',
+    cefrBadge: 'CEFR A2 • Connected Sentences & Connectors',
+    topic: 'The Journey of Sea Turtles',
+    avatar: '🐢',
+    bgGradient: 'from-emerald-500 to-teal-700',
+    passageTitle: 'The Journey of Sea Turtles',
+    readingTip: 'Look for linking words like because, when, and so!',
+    passageParagraphs: [
+      {
+        text: 'Sea turtles are quiet ocean animals. They have a hard {shell} on their back because it {protects} them from big sharks.',
+        highlights: {
+          shell: { word: 'shell', emoji: '🐢', definition: 'A hard outer cover that keeps an animal safe.' },
+          protects: { word: 'protects', emoji: '🛡️', definition: 'Keeps safe from danger.' }
+        }
+      },
+      {
+        text: 'Turtles like to eat jellyfish. But plastic bags look like jellyfish in the water, so turtles eat plastic by mistake and get sick.',
+        highlights: {}
+      },
+      {
+        text: 'When a mother turtle is ready to lay eggs, she swims to the sand beach. She digs a hole so her eggs stay safe. After two months, baby turtles {hatch} and race into the ocean!',
+        highlights: {
+          hatch: { word: 'hatch', emoji: '🥚', definition: 'To come out of an egg when born.' }
+        }
+      }
+    ],
+    questions: [
+      {
+        id: 'q1_a2',
+        type: 'multiple_choice_text',
+        prompt: 'Why do sea turtles have a hard shell on their back?',
+        subtitle: 'Cause & Effect (because):',
+        options: [
+          { id: 'a', text: 'To sleep comfortably on sand', isCorrect: false },
+          { id: 'b', text: 'Because it protects them from big sharks', isCorrect: true },
+          { id: 'c', text: 'To swim faster than fish', isCorrect: false }
+        ]
+      },
+      {
+        id: 'q2_a2',
+        type: 'multiple_choice_text',
+        prompt: 'Why do sea turtles eat plastic bags by mistake?',
+        subtitle: 'Sentence Connectors (so / look like):',
+        options: [
+          { id: 'a', text: 'Because plastic bags look like jellyfish in water', isCorrect: true },
+          { id: 'b', text: 'Because plastic tastes like sweet candy', isCorrect: false },
+          { id: 'c', text: 'Because fish throw plastic at them', isCorrect: false }
+        ]
+      },
+      {
+        id: 'q3_a2',
+        type: 'sequence',
+        prompt: "Put the mother sea turtle's story in order (1 to 3):",
+        items: [
+          { id: 's2', text: 'She digs a hole in the sand to hide her eggs.', correctOrder: 2 },
+          { id: 's1', text: 'She swims to the sand beach when ready.', correctOrder: 1 },
+          { id: 's3', text: 'Baby turtles hatch and race into the ocean.', correctOrder: 3 }
+        ]
+      },
+      {
+        id: 'q4_a2',
+        type: 'context_vocabulary',
+        prompt: 'What does the word "protects" mean in the story?',
+        passageContext: '"...a hard shell on their back because it protects them from big sharks."',
+        options: [
+          { id: 'a', text: 'Makes them shiny and pretty', isCorrect: false },
+          { id: 'b', text: 'Keeps them safe from danger', isCorrect: true },
+          { id: 'c', text: 'Helps them jump very high', isCorrect: false }
+        ]
+      },
+      {
+        id: 'q5_a2',
+        type: 'multiple_choice_text',
+        prompt: 'What is the main idea of this story?',
+        subtitle: 'Global Understanding:',
+        options: [
+          { id: 'a', text: 'Sea turtles live in forests and fly in the sky', isCorrect: false },
+          { id: 'b', text: 'Sea turtles have shells for protection, lay eggs on sand, and need clean oceans', isCorrect: true },
+          { id: 'c', text: 'Sharks like to play games with baby turtles', isCorrect: false }
+        ]
+      }
+    ]
+  }
+};
+
+const SubmarineIcon = ({ className = "w-10 h-10" }) => (
+  <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 50 C15 35 30 25 55 25 C80 25 90 38 90 50 C90 62 80 75 55 75 C30 75 15 65 15 50 Z" fill="#FBBF24" stroke="#D97706" strokeWidth="4" />
+    <circle cx="40" cy="50" r="7" fill="#38BDF8" stroke="#0284C7" strokeWidth="3" />
+    <circle cx="60" cy="50" r="7" fill="#38BDF8" stroke="#0284C7" strokeWidth="3" />
+    <path d="M50 25 L50 12 C50 10 52 8 55 8 L62 8" stroke="#F59E0B" strokeWidth="5" strokeLinecap="round" />
+    <path d="M15 42 L5 38 V62 L15 58 Z" fill="#F59E0B" />
+    <circle cx="90" cy="50" r="3" fill="#EF4444" />
+  </svg>
+);
+
+const UnderwaterBubbles = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+    <div className="bubble bubble-1 absolute bottom-[-20px] left-[10%] w-8 h-8 rounded-full bg-white/20 border border-white/40 animate-float-slow"></div>
+    <div className="bubble bubble-2 absolute bottom-[-20px] left-[30%] w-5 h-5 rounded-full bg-white/25 border border-white/40 animate-float-medium"></div>
+    <div className="bubble bubble-3 absolute bottom-[-20px] left-[65%] w-10 h-10 rounded-full bg-white/15 border border-white/30 animate-float-slow"></div>
+    <div className="bubble bubble-4 absolute bottom-[-20px] left-[85%] w-6 h-6 rounded-full bg-white/20 border border-white/40 animate-float-fast"></div>
+  </div>
+);
+
+const InteractivePassageText = ({ paragraph, onSpeakWord }) => {
+  const [activeTooltip, setActiveTooltip] = useState(null);
+
+  const renderTextParts = () => {
+    const parts = [];
+    const text = paragraph.text;
+    const regex = /\{(\w+)\}/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const matchIndex = match.index;
+      const wordKey = match[1];
+      const highlightInfo = paragraph.highlights[wordKey];
+
+      if (matchIndex > lastIndex) {
+        parts.push(text.substring(lastIndex, matchIndex));
+      }
+
+      if (highlightInfo) {
+        parts.push(
+          <span key={matchIndex} className="relative inline-block mx-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                playSoundEffect('pop');
+                setActiveTooltip(activeTooltip === wordKey ? null : wordKey);
+                onSpeakWord(highlightInfo.word);
+              }}
+              className="px-2.5 py-1 rounded-xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-extrabold underline decoration-wavy decoration-amber-600 transition-all hover:scale-105 shadow-xs cursor-pointer inline-flex items-center gap-1 text-xl sm:text-2xl"
+            >
+              <span>{highlightInfo.word}</span>
+              <span className="text-lg">{highlightInfo.emoji}</span>
+            </button>
+
+            {activeTooltip === wordKey && (
+              <div 
+                className="absolute left-1/2 bottom-full mb-3 -translate-x-1/2 w-64 p-3.5 bg-white rounded-2xl shadow-2xl border-4 border-amber-400 z-50 text-slate-800 animate-in fade-in zoom-in duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b pb-1.5 mb-2 border-slate-100">
+                  <span className="font-extrabold text-lg text-amber-600 capitalize flex items-center gap-2">
+                    <span className="text-2xl">{highlightInfo.emoji}</span> {highlightInfo.word}
+                  </span>
+                  <button 
+                    onClick={() => setActiveTooltip(null)}
+                    className="text-slate-400 hover:text-slate-600 p-1 rounded-full text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="text-base text-slate-700 font-medium leading-snug">
+                  {highlightInfo.definition}
+                </div>
+                <div className="mt-2.5 pt-1.5 border-t border-slate-100 flex justify-end">
+                  <button
+                    onClick={() => onSpeakWord(highlightInfo.word)}
+                    className="text-xs bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg font-bold hover:bg-amber-200 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Volume2 className="w-3.5 h-3.5 text-amber-700" /> Listen
+                  </button>
+                </div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-amber-400"></div>
+              </div>
+            )}
+          </span>
+        );
+      } else {
+        parts.push(wordKey);
+      }
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts;
+  };
+
+  return (
+    <div className="mb-4 text-slate-800 text-xl sm:text-2xl leading-relaxed font-sans font-medium tracking-normal">
+      {renderTextParts()}
+    </div>
+  );
+};
+
+const ImageMultipleChoiceQuestion = ({ question, selectedOption, onSelect }) => {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-4">
+      {question.options.map((opt) => {
+        const isSelected = selectedOption === opt.id;
+        return (
+          <button
+            key={opt.id}
+            onClick={() => {
+              playSoundEffect('pop');
+              onSelect(opt.id);
+            }}
+            className={`p-4 rounded-2xl border-4 text-center flex flex-col items-center justify-between transition-all duration-200 cursor-pointer ${
+              isSelected
+                ? 'bg-amber-100 border-amber-500 text-amber-950 font-black shadow-lg scale-105 ring-4 ring-amber-300/50'
+                : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 font-bold shadow-xs hover:scale-102'
+            }`}
+          >
+            <div className="text-5xl sm:text-6xl my-2 transform transition-transform hover:scale-110">
+              {opt.icon}
+            </div>
+            <span className="text-lg font-extrabold">{opt.text}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+const TrueFalseQuestion = ({ selectedValue, onSelect }) => {
+  return (
+    <div className="flex flex-col sm:flex-row gap-4 my-6 justify-center">
+      <button
+        onClick={() => {
+          playSoundEffect('pop');
+          onSelect(true);
+        }}
+        className={`flex-1 py-6 px-8 rounded-2xl border-4 text-2xl font-black flex items-center justify-center gap-3 transition-all cursor-pointer ${
+          selectedValue === true
+            ? 'bg-emerald-500 text-white border-emerald-600 shadow-xl scale-105'
+            : 'bg-white text-emerald-600 border-emerald-200 hover:border-emerald-400 shadow-md'
+        }`}
+      >
+        <span className="text-3xl">👍</span> True
+      </button>
+      <button
+        onClick={() => {
+          playSoundEffect('pop');
+          onSelect(false);
+        }}
+        className={`flex-1 py-6 px-8 rounded-2xl border-4 text-2xl font-black flex items-center justify-center gap-3 transition-all cursor-pointer ${
+          selectedValue === false
+            ? 'bg-rose-500 text-white border-rose-600 shadow-xl scale-105'
+            : 'bg-white text-rose-600 border-rose-200 hover:border-rose-400 shadow-md'
+        }`}
+      >
+        <span className="text-3xl">👎</span> False
+      </button>
+    </div>
+  );
+};
+
+const MatchingQuestion = ({ pairs, matches, onMatchPair }) => {
+  const [selectedWord, setSelectedWord] = useState(null);
+
+  const sentences = pairs.map(p => ({ id: p.id, text: p.sentence }));
+  const targets = pairs.map(p => ({ id: p.id, icon: p.icon }));
+
+  const handleWordClick = (wordId) => {
+    playSoundEffect('pop');
+    setSelectedWord(wordId);
+  };
+
+  const handleTargetClick = (targetId) => {
+    if (selectedWord) {
+      playSoundEffect('pop');
+      onMatchPair(selectedWord, targetId);
+      setSelectedWord(null);
+    }
+  };
+
+  return (
+    <div className="my-4">
+      <p className="text-xs sm:text-sm text-sky-800 font-bold mb-3 text-center bg-sky-100 py-1.5 px-4 rounded-full inline-block mx-auto border border-sky-200">
+        👉 Tap a sentence on the left, then tap its picture on the right!
+      </p>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Left Column: Sentences */}
+        <div className="flex flex-col gap-3">
+          <h4 className="font-extrabold text-slate-600 text-xs uppercase tracking-wider text-center">Sentences</h4>
+          {sentences.map((item) => {
+            const matchedTargetId = matches[item.id];
+            const isSelected = selectedWord === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleWordClick(item.id)}
+                className={`p-3.5 rounded-2xl border-3 text-base sm:text-lg font-black flex items-center justify-between transition-all cursor-pointer text-left ${
+                  matchedTargetId
+                    ? 'bg-emerald-100 border-emerald-400 text-emerald-900'
+                    : isSelected
+                    ? 'bg-amber-200 border-amber-500 text-amber-950 ring-4 ring-amber-300/50 scale-102'
+                    : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 shadow-xs'
+                }`}
+              >
+                <span>{item.text}</span>
+                {matchedTargetId && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 ml-2" />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right Column: Pictures ONLY (no text labels) */}
+        <div className="flex flex-col gap-3">
+          <h4 className="font-extrabold text-slate-600 text-xs uppercase tracking-wider text-center">Pictures</h4>
+          <div className="flex flex-col gap-3">
+            {targets.map((target) => {
+              const matchedWordId = Object.keys(matches).find(k => matches[k] === target.id);
+              return (
+                <button
+                  key={target.id}
+                  onClick={() => handleTargetClick(target.id)}
+                  className={`p-4 rounded-2xl border-3 flex items-center justify-center transition-all cursor-pointer min-h-[64px] ${
+                    matchedWordId
+                      ? 'bg-emerald-100 border-emerald-400 text-emerald-900 shadow-xs'
+                      : 'bg-white border-slate-200 hover:border-sky-400 shadow-xs hover:scale-102'
+                  }`}
+                >
+                  <span className="text-4xl sm:text-5xl">{target.icon}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SequenceOrderingQuestion = ({ currentOrder, onMoveUp, onMoveDown }) => {
+  return (
+    <div className="my-4 flex flex-col gap-3">
+      <p className="text-xs sm:text-sm text-teal-900 font-bold mb-1 text-center bg-teal-100 py-1.5 px-4 rounded-full inline-block border border-teal-200">
+        Use arrows to arrange the events in order from 1 to 3!
+      </p>
+
+      {currentOrder.map((item, index) => (
+        <div
+          key={item.id}
+          className="flex items-center gap-3 p-4 bg-white border-3 border-teal-200 rounded-2xl shadow-sm hover:shadow-md transition-all"
+        >
+          <div className="w-10 h-10 rounded-full bg-teal-600 text-white font-black text-xl flex items-center justify-center shrink-0 shadow-xs">
+            {index + 1}
+          </div>
+          <div className="flex-1 text-slate-800 font-bold text-lg leading-snug">
+            {item.text}
+          </div>
+          <div className="flex flex-col gap-1 shrink-0">
+            <button
+              disabled={index === 0}
+              onClick={() => {
+                playSoundEffect('pop');
+                onMoveUp(index);
+              }}
+              className="p-1.5 rounded-lg bg-slate-100 hover:bg-teal-100 disabled:opacity-30 disabled:hover:bg-slate-100 text-slate-700 cursor-pointer"
+            >
+              <ChevronUp className="w-5 h-5" />
+            </button>
+            <button
+              disabled={index === currentOrder.length - 1}
+              onClick={() => {
+                playSoundEffect('pop');
+                onMoveDown(index);
+              }}
+              className="p-1.5 rounded-lg bg-slate-100 hover:bg-teal-100 disabled:opacity-30 disabled:hover:bg-slate-100 text-slate-700 cursor-pointer"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const TextMultipleChoiceQuestion = ({ question, selectedOption, onSelect }) => {
+  return (
+    <div className="flex flex-col gap-3 my-4">
+      {question.passageContext && (
+        <div className="p-3 bg-amber-50 border-l-4 border-amber-400 rounded-r-xl italic text-slate-800 text-base font-medium mb-2">
+          {question.passageContext}
+        </div>
+      )}
+      {question.options.map((opt) => {
+        const isSelected = selectedOption === opt.id;
+        return (
+          <button
+            key={opt.id}
+            onClick={() => {
+              playSoundEffect('pop');
+              onSelect(opt.id);
+            }}
+            className={`p-4 rounded-2xl border-3 text-left transition-all duration-200 cursor-pointer flex items-start gap-3 ${
+              isSelected
+                ? 'bg-sky-100 border-sky-500 text-sky-950 font-black shadow-md scale-101'
+                : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 font-bold shadow-xs'
+            }`}
+          >
+            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mt-0.5 shrink-0 ${
+              isSelected ? 'border-sky-600 bg-sky-500 text-white' : 'border-slate-300'
+            }`}>
+              {isSelected && <span className="text-xs font-bold">✓</span>}
+            </div>
+            <span className="text-lg leading-snug">{opt.text}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState('welcome');
+  const [studentName, setStudentName] = useState('');
+  const [selectedLevelId, setSelectedLevelId] = useState('A1');
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+  
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+  const [userAnswers, setUserAnswers] = useState({});
+  const [sequenceOrders, setSequenceOrders] = useState({});
+  const [matchingPairs, setMatchingPairs] = useState({});
+
+  const [feedback, setFeedback] = useState(null);
+
+  const speakText = (text, isSlow = false) => {
+    if (!('speechSynthesis' in window)) return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Slower speech rate for young ESL children reading word by word
+    utterance.rate = isSlow || selectedLevelId === 'A1' ? 0.75 : 0.85; 
+    utterance.pitch = 1.1;
+
+    utterance.onstart = () => setIsPlayingAudio(true);
+    utterance.onend = () => setIsPlayingAudio(false);
+    utterance.onerror = () => setIsPlayingAudio(false);
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopAudio = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlayingAudio(false);
+  };
+
+  const currentLevelData = READ_ASSESSMENT_DATA[selectedLevelId];
+  const currentQuestion = currentLevelData?.questions[currentQuestionIdx];
+
+  useEffect(() => {
+    if (currentQuestion?.type === 'sequence' && !sequenceOrders[currentQuestion.id]) {
+      setSequenceOrders(prev => ({
+        ...prev,
+        [currentQuestion.id]: [...currentQuestion.items]
+      }));
+    }
+  }, [currentQuestionIdx, selectedLevelId]);
+
+  const handleStartAssessment = (levelId) => {
+    playSoundEffect('pop');
+    setSelectedLevelId(levelId);
+    setCurrentQuestionIdx(0);
+    setUserAnswers({});
+    setFeedback(null);
+    setCurrentScreen('assessment');
+  };
+
+  const handleCheckAnswer = () => {
+    if (!currentQuestion) return;
+
+    let isCorrect = false;
+
+    if (currentQuestion.type === 'multiple_choice_image' || currentQuestion.type === 'multiple_choice_text' || currentQuestion.type === 'context_vocabulary') {
+      const selectedId = userAnswers[currentQuestion.id];
+      const correctOpt = currentQuestion.options.find(o => o.isCorrect);
+      isCorrect = selectedId === correctOpt?.id;
+    } else if (currentQuestion.type === 'true_false') {
+      const val = userAnswers[currentQuestion.id];
+      isCorrect = val === currentQuestion.correctValue;
+    } else if (currentQuestion.type === 'matching') {
+      const matches = matchingPairs[currentQuestion.id] || {};
+      const totalPairs = currentQuestion.pairs.length;
+      let correctMatches = 0;
+      currentQuestion.pairs.forEach(p => {
+        if (matches[p.id] === p.id) {
+          correctMatches++;
+        }
+      });
+      isCorrect = correctMatches === totalPairs;
+    } else if (currentQuestion.type === 'sequence') {
+      const order = sequenceOrders[currentQuestion.id] || [];
+      isCorrect = order.every((item, idx) => item.correctOrder === idx + 1);
+    }
+
+    if (isCorrect) {
+      playSoundEffect('success');
+      setFeedback({ isCorrect: true, message: 'Great job! That is correct! 🎉' });
+    } else {
+      playSoundEffect('error');
+      setFeedback({ isCorrect: false, message: 'Not quite! Read the story again carefully. 🌊' });
+    }
+  };
+
+  const handleNextQuestion = () => {
+    playSoundEffect('pop');
+    setFeedback(null);
+    if (currentQuestionIdx + 1 < currentLevelData.questions.length) {
+      setCurrentQuestionIdx(prev => prev + 1);
+    } else {
+      playSoundEffect('celebrate');
+      setCurrentScreen('results');
+    }
+  };
+
+  const calculateScore = () => {
+    let score = 0;
+    currentLevelData.questions.forEach((q) => {
+      if (q.type === 'multiple_choice_image' || q.type === 'multiple_choice_text' || q.type === 'context_vocabulary') {
+        const selectedId = userAnswers[q.id];
+        const correctOpt = q.options.find(o => o.isCorrect);
+        if (selectedId === correctOpt?.id) score++;
+      } else if (q.type === 'true_false') {
+        if (userAnswers[q.id] === q.correctValue) score++;
+      } else if (q.type === 'matching') {
+        const matches = matchingPairs[q.id] || {};
+        const isAllCorrect = q.pairs.every(p => matches[p.id] === p.id);
+        if (isAllCorrect) score++;
+      } else if (q.type === 'sequence') {
+        const order = sequenceOrders[q.id] || [];
+        const isSeqCorrect = order.every((item, idx) => item.correctOrder === idx + 1);
+        if (isSeqCorrect) score++;
+      }
+    });
+    return score;
+  };
+
+  const totalQuestions = currentLevelData?.questions.length || 0;
+  const score = calculateScore();
+  const percentage = Math.round((score / (totalQuestions || 1)) * 100);
+
+  const handleMoveSequenceUp = (idx) => {
+    const qId = currentQuestion.id;
+    const currentList = [...(sequenceOrders[qId] || [])];
+    if (idx > 0) {
+      const temp = currentList[idx];
+      currentList[idx] = currentList[idx - 1];
+      currentList[idx - 1] = temp;
+      setSequenceOrders(prev => ({ ...prev, [qId]: currentList }));
+    }
+  };
+
+  const handleMoveSequenceDown = (idx) => {
+    const qId = currentQuestion.id;
+    const currentList = [...(sequenceOrders[qId] || [])];
+    if (idx < currentList.length - 1) {
+      const temp = currentList[idx];
+      currentList[idx] = currentList[idx + 1];
+      currentList[idx + 1] = temp;
+      setSequenceOrders(prev => ({ ...prev, [qId]: currentList }));
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-800 font-sans flex flex-col justify-between relative overflow-hidden select-none">
+      
+      {/* Background Ocean Gradient */}
+      <div className="fixed inset-0 bg-gradient-to-b from-sky-400 via-blue-600 to-indigo-950 pointer-events-none z-0"></div>
+      <UnderwaterBubbles />
+
+      {/* Header Bar */}
+      <header className="relative z-10 bg-white/10 backdrop-blur-md border-b border-white/20 px-4 py-3 flex items-center justify-between text-white shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-amber-400 text-amber-950 flex items-center justify-center text-2xl shadow-md font-bold">
+            🌊
+          </div>
+          <div>
+            <h1 className="font-black text-xl sm:text-2xl tracking-tight drop-shadow-xs">
+              Ocean Reading Assessment
+            </h1>
+            <p className="text-xs text-sky-100 font-medium">Adapted for CEFR A1 & A2 (Aged 10)</p>
+          </div>
+        </div>
+
+        {studentName && (
+          <div className="flex items-center gap-2 bg-white/20 px-3.5 py-1.5 rounded-full border border-white/30 text-sm font-bold">
+            <User className="w-4 h-4 text-amber-300" />
+            <span>{studentName}</span>
+          </div>
+        )}
+      </header>
+
+      {/* SCREEN 1: WELCOME */}
+      {currentScreen === 'welcome' && (
+        <main className="relative z-10 max-w-4xl mx-auto px-4 py-8 flex-1 flex flex-col justify-center items-center text-center">
+          <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 sm:p-10 shadow-2xl border-4 border-sky-200 w-full max-w-2xl transform transition-all">
+            
+            <div className="inline-block p-4 bg-sky-100 rounded-full mb-4 shadow-inner">
+              <span className="text-6xl animate-bounce inline-block">🐬</span>
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl font-black text-sky-950 mb-2">
+              Marine Life Reading Quest 🐠
+            </h2>
+            <p className="text-slate-600 text-lg font-bold mb-6">
+              Short, clear stories tailored for 10-year-old English learners!
+            </p>
+
+            <div className="mb-8 max-w-md mx-auto text-left">
+              <label className="block text-xs font-black text-slate-700 mb-2 uppercase tracking-wider">
+                Enter Your Name:
+              </label>
+              <input
+                type="text"
+                value={studentName}
+                onChange={(e) => setStudentName(e.target.value)}
+                placeholder="e.g. Alex"
+                className="w-full px-5 py-3.5 rounded-2xl border-3 border-sky-300 focus:border-amber-400 focus:outline-hidden text-xl font-bold text-slate-800 shadow-inner bg-white"
+              />
+            </div>
+
+            <h3 className="font-extrabold text-slate-700 text-sm mb-4 uppercase tracking-wider">
+              Select CEFR Reading Level:
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                onClick={() => handleStartAssessment('A1')}
+                className="p-6 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-500 hover:from-cyan-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all cursor-pointer border-3 border-white/50 flex flex-col items-center gap-2 group transform hover:-translate-y-1"
+              >
+                <span className="text-5xl group-hover:scale-110 transition-transform">🐬</span>
+                <span className="font-black text-2xl">Level 1 (A1)</span>
+                <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full">
+                  Short & Simple • Word-by-Word
+                </span>
+                <span className="text-xs font-medium opacity-90 mt-1">The Playful Dolphin</span>
+              </button>
+
+              <button
+                onClick={() => handleStartAssessment('A2')}
+                className="p-6 rounded-3xl bg-gradient-to-br from-emerald-400 to-teal-600 hover:from-emerald-500 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all cursor-pointer border-3 border-white/50 flex flex-col items-center gap-2 group transform hover:-translate-y-1"
+              >
+                <span className="text-5xl group-hover:scale-110 transition-transform">🐢</span>
+                <span className="font-black text-2xl">Level 2 (A2)</span>
+                <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full">
+                  Connected Sentences & Connectors
+                </span>
+                <span className="text-xs font-medium opacity-90 mt-1">The Journey of Sea Turtles</span>
+              </button>
+            </div>
+
+          </div>
+        </main>
+      )}
+
+      {/* SCREEN 2: ASSESSMENT */}
+      {currentScreen === 'assessment' && currentLevelData && (
+        <main className="relative z-10 max-w-6xl mx-auto px-4 py-4 w-full flex-1 flex flex-col gap-4">
+          
+          {/* Progress Header Map */}
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-lg border-2 border-sky-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-extrabold text-sky-950 text-sm flex items-center gap-2">
+                <Compass className="w-4 h-4 text-amber-500" />
+                {currentLevelData.levelTitle}
+              </span>
+              <span className="font-black text-sky-800 text-xs bg-sky-100 px-3 py-1 rounded-full border border-sky-200">
+                Question {currentQuestionIdx + 1} of {totalQuestions}
+              </span>
+            </div>
+
+            <div className="relative w-full h-8 bg-sky-200/80 rounded-full overflow-visible border-2 border-sky-300 flex items-center px-1">
+              <div 
+                className="h-4 bg-gradient-to-r from-amber-400 to-yellow-300 rounded-full transition-all duration-500 shadow-inner"
+                style={{ width: `${((currentQuestionIdx + 1) / totalQuestions) * 100}%` }}
+              ></div>
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 transition-all duration-500 z-10 drop-shadow-md"
+                style={{ left: `calc(${((currentQuestionIdx + 1) / totalQuestions) * 100}% - 28px)` }}
+              >
+                <SubmarineIcon className="w-10 h-10 animate-bounce-slow" />
+              </div>
+            </div>
+          </div>
+
+          {/* Passage & Question Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+            
+            {/* Passage Panel */}
+            <div className="lg:col-span-6 bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-xl border-4 border-sky-100 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between border-b pb-3 mb-3 border-slate-200">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl">{currentLevelData.avatar}</span>
+                      <h2 className="text-2xl font-black text-sky-950">
+                        {currentLevelData.passageTitle}
+                      </h2>
+                    </div>
+                    <span className="text-xs font-extrabold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200 inline-block mt-1">
+                      {currentLevelData.cefrBadge}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (isPlayingAudio) {
+                        stopAudio();
+                      } else {
+                        const fullPassageText = currentLevelData.passageParagraphs
+                          .map(p => p.text.replace(/\{(\w+)\}/g, '$1'))
+                          .join(' ');
+                        speakText(fullPassageText);
+                      }
+                    }}
+                    className={`px-3.5 py-2 rounded-xl font-black text-sm flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                      isPlayingAudio
+                        ? 'bg-amber-500 text-white animate-pulse'
+                        : 'bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200'
+                    }`}
+                  >
+                    {isPlayingAudio ? <Pause className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-sky-600" />}
+                    <span>{isPlayingAudio ? 'Stop' : 'Read Aloud'}</span>
+                  </button>
+                </div>
+
+                {/* CEFR Reading Tip */}
+                <div className="mb-4 bg-amber-50 border-l-4 border-amber-400 p-2.5 rounded-r-xl text-xs font-bold text-amber-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>{currentLevelData.readingTip}</span>
+                </div>
+
+                {/* Story Paragraphs */}
+                <div className="space-y-4">
+                  {currentLevelData.passageParagraphs.map((paragraph, idx) => (
+                    <InteractivePassageText
+                      key={idx}
+                      paragraph={paragraph}
+                      onSpeakWord={(word) => speakText(word, true)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between font-bold">
+                <span>💡 Tap highlighted yellow words to see pictures & definitions!</span>
+              </div>
+            </div>
+
+            {/* Question Panel */}
+            <div className="lg:col-span-6 bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-xl border-4 border-sky-100 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-extrabold text-xs uppercase tracking-wider text-sky-700 bg-sky-100 px-3 py-1 rounded-full border border-sky-200">
+                    Question {currentQuestionIdx + 1}
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (currentQuestion) {
+                        speakText(currentQuestion.prompt);
+                      }
+                    }}
+                    className="text-xs font-bold text-sky-800 hover:text-sky-950 flex items-center gap-1 bg-sky-100 px-2.5 py-1 rounded-lg border border-sky-200 cursor-pointer"
+                  >
+                    <Volume2 className="w-3.5 h-3.5 text-sky-600" /> Read Question
+                  </button>
+                </div>
+
+                {currentQuestion?.subtitle && (
+                  <p className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-1">
+                    {currentQuestion.subtitle}
+                  </p>
+                )}
+
+                <h3 className="text-2xl font-black text-slate-900 mb-4 leading-tight">
+                  {currentQuestion?.prompt}
+                </h3>
+
+                {/* Render Question Cards based on Type */}
+                {currentQuestion?.type === 'multiple_choice_image' && (
+                  <ImageMultipleChoiceQuestion
+                    question={currentQuestion}
+                    selectedOption={userAnswers[currentQuestion.id]}
+                    onSelect={(optId) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: optId }))}
+                  />
+                )}
+
+                {currentQuestion?.type === 'true_false' && (
+                  <TrueFalseQuestion
+                    selectedValue={userAnswers[currentQuestion.id]}
+                    onSelect={(val) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: val }))}
+                  />
+                )}
+
+                {currentQuestion?.type === 'matching' && (
+                  <MatchingQuestion
+                    pairs={currentQuestion.pairs}
+                    matches={matchingPairs[currentQuestion.id] || {}}
+                    onMatchPair={(wordId, targetId) => {
+                      setMatchingPairs(prev => ({
+                        ...prev,
+                        [currentQuestion.id]: {
+                          ...(prev[currentQuestion.id] || {}),
+                          [wordId]: targetId
+                        }
+                      }));
+                    }}
+                  />
+                )}
+
+                {currentQuestion?.type === 'sequence' && (
+                  <SequenceOrderingQuestion
+                    currentOrder={sequenceOrders[currentQuestion.id] || currentQuestion.items}
+                    onMoveUp={handleMoveSequenceUp}
+                    onMoveDown={handleMoveSequenceDown}
+                  />
+                )}
+
+                {(currentQuestion?.type === 'multiple_choice_text' || currentQuestion?.type === 'context_vocabulary') && (
+                  <TextMultipleChoiceQuestion
+                    question={currentQuestion}
+                    selectedOption={userAnswers[currentQuestion.id]}
+                    onSelect={(optId) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: optId }))}
+                  />
+                )}
+              </div>
+
+              {/* Feedback & Navigation Actions */}
+              <div className="mt-6 pt-4 border-t border-slate-200">
+                {feedback && (
+                  <div className={`p-4 rounded-2xl mb-4 font-black text-lg flex items-center gap-3 animate-in fade-in duration-200 ${
+                    feedback.isCorrect 
+                      ? 'bg-emerald-100 text-emerald-950 border-2 border-emerald-400' 
+                      : 'bg-amber-100 text-amber-950 border-2 border-amber-400'
+                  }`}>
+                    {feedback.isCorrect ? (
+                      <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
+                    ) : (
+                      <HelpCircle className="w-8 h-8 text-amber-600 shrink-0" />
+                    )}
+                    <span>{feedback.message}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    onClick={() => {
+                      if (currentQuestionIdx > 0) {
+                        setCurrentQuestionIdx(prev => prev - 1);
+                        setFeedback(null);
+                      }
+                    }}
+                    disabled={currentQuestionIdx === 0}
+                    className="px-4 py-3 rounded-xl font-black bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 transition-all cursor-pointer"
+                  >
+                    Back
+                  </button>
+
+                  {!feedback?.isCorrect ? (
+                    <button
+                      onClick={handleCheckAnswer}
+                      className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-amber-950 font-black text-xl shadow-lg hover:shadow-xl transition-all cursor-pointer border-b-4 border-amber-600 flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 className="w-6 h-6" /> Check Answer
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleNextQuestion}
+                      className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xl shadow-lg hover:shadow-xl transition-all cursor-pointer border-b-4 border-emerald-700 flex items-center justify-center gap-2"
+                    >
+                      <span>{currentQuestionIdx + 1 < totalQuestions ? 'Next Question' : 'See Results'}</span>
+                      <ArrowRight className="w-6 h-6" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </main>
+      )}
+
+      {/* SCREEN 3: RESULTS */}
+      {currentScreen === 'results' && (
+        <main className="relative z-10 max-w-3xl mx-auto px-4 py-8 flex-1 flex flex-col justify-center items-center text-center">
+          <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 sm:p-10 shadow-2xl border-4 border-amber-300 w-full animate-in zoom-in duration-300">
+            
+            <div className="text-6xl mb-2 animate-bounce">🏆</div>
+
+            {/* Student Name & Level Banner */}
+            <div className="bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-2xl p-4 mb-6 shadow-md border-2 border-white/40">
+              <span className="text-xs font-black uppercase tracking-widest text-sky-200 block mb-1">
+                Reading Assessment Certificate
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black mb-1">
+                {studentName ? studentName : 'Super Reader'}
+              </h2>
+              <p className="text-sm font-bold text-sky-100">
+                Completed: {currentLevelData.levelTitle}
+              </p>
+            </div>
+
+            {/* Star Rating Display */}
+            <div className="flex justify-center gap-3 mb-6">
+              {[1, 2, 3].map((starIndex) => {
+                const isEarned = (percentage >= 33 && starIndex === 1) ||
+                                 (percentage >= 66 && starIndex === 2) ||
+                                 (percentage >= 100 && starIndex === 3);
+                return (
+                  <div 
+                    key={starIndex}
+                    className={`p-3 rounded-full border-4 transition-transform ${
+                      isEarned 
+                        ? 'bg-amber-100 border-amber-400 text-amber-500 scale-110 shadow-lg animate-pulse' 
+                        : 'bg-slate-100 border-slate-300 text-slate-300'
+                    }`}
+                  >
+                    <Star className="w-10 h-10 sm:w-12 sm:h-12 fill-current" />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Score Box */}
+            <div className="bg-sky-50 border-3 border-sky-200 rounded-2xl p-5 mb-6 max-w-md mx-auto shadow-inner">
+              <div className="text-xs font-black text-sky-800 uppercase tracking-wider mb-1">
+                Final Score
+              </div>
+              <div className="text-5xl font-black text-sky-950 mb-1">
+                {score} / {totalQuestions}
+              </div>
+              <div className="text-lg font-black text-amber-600 mb-2">
+                {percentage}% Correct
+              </div>
+              <p className="text-sm font-extrabold text-slate-700">
+                {percentage === 100 
+                  ? '🌟 Perfect Score! Excellent reading comprehension!' 
+                  : percentage >= 60 
+                  ? '🎉 Great job! You understand the main ideas well!' 
+                  : '🌊 Good effort! Try again to get all 3 stars!'}
+              </p>
+            </div>
+
+            {/* Badges Unlocked */}
+            <div className="mb-6">
+              <h3 className="font-extrabold text-slate-700 text-xs uppercase tracking-wider mb-3">
+                Badges Earned:
+              </h3>
+              <div className="flex flex-wrap justify-center gap-3">
+                <div className="bg-amber-100 border-2 border-amber-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-amber-950 font-bold shadow-xs">
+                  <Award className="w-5 h-5 text-amber-600" /> Ocean Explorer
+                </div>
+                {selectedLevelId === 'A1' && (
+                  <div className="bg-cyan-100 border-2 border-cyan-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-cyan-950 font-bold shadow-xs">
+                    🐬 Word Star (A1)
+                  </div>
+                )}
+                {selectedLevelId === 'A2' && (
+                  <div className="bg-emerald-100 border-2 border-emerald-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-emerald-950 font-bold shadow-xs">
+                    🐢 Sentence Master (A2)
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => handleStartAssessment(selectedLevelId)}
+                className="py-3.5 px-6 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-black text-lg shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-5 h-5" /> Try Level Again
+              </button>
+
+              <button
+                onClick={() => {
+                  playSoundEffect('pop');
+                  setCurrentScreen('welcome');
+                }}
+                className="py-3.5 px-6 rounded-2xl bg-amber-400 hover:bg-amber-500 text-amber-950 font-black text-lg shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Compass className="w-5 h-5" /> Choose Level
+              </button>
+            </div>
+
+          </div>
+        </main>
+      )}
+
+      <footer className="relative z-10 text-center py-3 text-sky-100 text-xs font-medium">
+        Ocean Reading Quest • CEFR Reading Assessment for 10-Year-Old Learners
+      </footer>
+
+    </div>
+  );
+}
