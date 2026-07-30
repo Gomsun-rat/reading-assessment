@@ -1,12 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Volume2, VolumeX, Award, Star, ArrowRight, RotateCcw, 
   CheckCircle2, XCircle, Sparkles, HelpCircle, ChevronRight, 
   ChevronDown, ChevronUp, MoveVertical, Play, Pause, Anchor,
-  Compass, Shield, RefreshCw, User, BookOpen, Smile, Sparkle
+  Compass, Shield, RefreshCw, User, BookOpen, Smile
 } from 'lucide-react';
 
+const CustomAnimationStyles = () => (
+  <style>{`
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) scale(1); opacity: 0.6; }
+      50% { transform: translateY(-50px) scale(1.1); opacity: 0.9; }
+    }
+    @keyframes floatMedium {
+      0%, 100% { transform: translateY(0px) scale(1); opacity: 0.5; }
+      50% { transform: translateY(-70px) scale(1.15); opacity: 0.85; }
+    }
+    @keyframes floatFast {
+      0%, 100% { transform: translateY(0px) scale(1); opacity: 0.7; }
+      50% { transform: translateY(-90px) scale(1.2); opacity: 1; }
+    }
+    @keyframes bounceSlow {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .animate-float-slow { animation: floatSlow 6s ease-in-out infinite; }
+    .animate-float-medium { animation: floatMedium 4.5s ease-in-out infinite; }
+    .animate-float-fast { animation: floatFast 3s ease-in-out infinite; }
+    .animate-bounce-slow { animation: bounceSlow 3s ease-in-out infinite; }
+  `}</style>
+);
+
 const createAudioContext = () => {
+  if (typeof window === 'undefined') return null;
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   return AudioContext ? new AudioContext() : null;
 };
@@ -293,13 +320,14 @@ const InteractivePassageText = ({ paragraph, onSpeakWord }) => {
         parts.push(
           <span key={matchIndex} className="relative inline-block mx-1">
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 playSoundEffect('pop');
                 setActiveTooltip(activeTooltip === wordKey ? null : wordKey);
                 onSpeakWord(highlightInfo.word);
               }}
-              className="px-2.5 py-1 rounded-xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-extrabold underline decoration-wavy decoration-amber-600 transition-all hover:scale-105 shadow-xs cursor-pointer inline-flex items-center gap-1 text-xl sm:text-2xl"
+              className="px-2.5 py-1 rounded-xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-extrabold underline decoration-wavy decoration-amber-600 transition-all hover:scale-105 shadow-sm cursor-pointer inline-flex items-center gap-1 text-xl sm:text-2xl"
             >
               <span>{highlightInfo.word}</span>
               <span className="text-lg">{highlightInfo.emoji}</span>
@@ -307,7 +335,7 @@ const InteractivePassageText = ({ paragraph, onSpeakWord }) => {
 
             {activeTooltip === wordKey && (
               <div 
-                className="absolute left-1/2 bottom-full mb-3 -translate-x-1/2 w-64 p-3.5 bg-white rounded-2xl shadow-2xl border-4 border-amber-400 z-50 text-slate-800 animate-in fade-in zoom-in duration-200"
+                className="absolute left-1/2 bottom-full mb-3 -translate-x-1/2 w-64 p-3.5 bg-white rounded-2xl shadow-2xl border-4 border-amber-400 z-50 text-slate-800"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between border-b pb-1.5 mb-2 border-slate-100">
@@ -315,6 +343,7 @@ const InteractivePassageText = ({ paragraph, onSpeakWord }) => {
                     <span className="text-2xl">{highlightInfo.emoji}</span> {highlightInfo.word}
                   </span>
                   <button 
+                    type="button"
                     onClick={() => setActiveTooltip(null)}
                     className="text-slate-400 hover:text-slate-600 p-1 rounded-full text-xs font-bold"
                   >
@@ -326,6 +355,7 @@ const InteractivePassageText = ({ paragraph, onSpeakWord }) => {
                 </div>
                 <div className="mt-2.5 pt-1.5 border-t border-slate-100 flex justify-end">
                   <button
+                    type="button"
                     onClick={() => onSpeakWord(highlightInfo.word)}
                     className="text-xs bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg font-bold hover:bg-amber-200 flex items-center gap-1 cursor-pointer"
                   >
@@ -366,14 +396,15 @@ const ImageMultipleChoiceQuestion = ({ question, selectedOption, onSelect }) => 
         return (
           <button
             key={opt.id}
+            type="button"
             onClick={() => {
               playSoundEffect('pop');
               onSelect(opt.id);
             }}
-            className={`p-4 rounded-2xl border-4 text-center flex flex-col items-center justify-between transition-all duration-200 cursor-pointer ${
+            className={`p-4 rounded-2xl border-[3px] text-center flex flex-col items-center justify-between transition-all duration-200 cursor-pointer ${
               isSelected
                 ? 'bg-amber-100 border-amber-500 text-amber-950 font-black shadow-lg scale-105 ring-4 ring-amber-300/50'
-                : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 font-bold shadow-xs hover:scale-102'
+                : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 font-bold shadow-sm hover:scale-[1.02]'
             }`}
           >
             <div className="text-5xl sm:text-6xl my-2 transform transition-transform hover:scale-110">
@@ -391,11 +422,12 @@ const TrueFalseQuestion = ({ selectedValue, onSelect }) => {
   return (
     <div className="flex flex-col sm:flex-row gap-4 my-6 justify-center">
       <button
+        type="button"
         onClick={() => {
           playSoundEffect('pop');
           onSelect(true);
         }}
-        className={`flex-1 py-6 px-8 rounded-2xl border-4 text-2xl font-black flex items-center justify-center gap-3 transition-all cursor-pointer ${
+        className={`flex-1 py-6 px-8 rounded-2xl border-[3px] text-2xl font-black flex items-center justify-center gap-3 transition-all cursor-pointer ${
           selectedValue === true
             ? 'bg-emerald-500 text-white border-emerald-600 shadow-xl scale-105'
             : 'bg-white text-emerald-600 border-emerald-200 hover:border-emerald-400 shadow-md'
@@ -404,11 +436,12 @@ const TrueFalseQuestion = ({ selectedValue, onSelect }) => {
         <span className="text-3xl">👍</span> True
       </button>
       <button
+        type="button"
         onClick={() => {
           playSoundEffect('pop');
           onSelect(false);
         }}
-        className={`flex-1 py-6 px-8 rounded-2xl border-4 text-2xl font-black flex items-center justify-center gap-3 transition-all cursor-pointer ${
+        className={`flex-1 py-6 px-8 rounded-2xl border-[3px] text-2xl font-black flex items-center justify-center gap-3 transition-all cursor-pointer ${
           selectedValue === false
             ? 'bg-rose-500 text-white border-rose-600 shadow-xl scale-105'
             : 'bg-white text-rose-600 border-rose-200 hover:border-rose-400 shadow-md'
@@ -455,13 +488,14 @@ const MatchingQuestion = ({ pairs, matches, onMatchPair }) => {
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => handleWordClick(item.id)}
-                className={`p-3.5 rounded-2xl border-3 text-base sm:text-lg font-black flex items-center justify-between transition-all cursor-pointer text-left ${
+                className={`p-3.5 rounded-2xl border-[3px] text-base sm:text-lg font-black flex items-center justify-between transition-all cursor-pointer text-left ${
                   matchedTargetId
                     ? 'bg-emerald-100 border-emerald-400 text-emerald-900'
                     : isSelected
-                    ? 'bg-amber-200 border-amber-500 text-amber-950 ring-4 ring-amber-300/50 scale-102'
-                    : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 shadow-xs'
+                    ? 'bg-amber-200 border-amber-500 text-amber-950 ring-4 ring-amber-300/50 scale-[1.02]'
+                    : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 shadow-sm'
                 }`}
               >
                 <span>{item.text}</span>
@@ -471,7 +505,7 @@ const MatchingQuestion = ({ pairs, matches, onMatchPair }) => {
           })}
         </div>
 
-        {/* Right Column: Pictures ONLY (no text labels) */}
+        {/* Right Column: Pictures ONLY */}
         <div className="flex flex-col gap-3">
           <h4 className="font-extrabold text-slate-600 text-xs uppercase tracking-wider text-center">Pictures</h4>
           <div className="flex flex-col gap-3">
@@ -480,11 +514,12 @@ const MatchingQuestion = ({ pairs, matches, onMatchPair }) => {
               return (
                 <button
                   key={target.id}
+                  type="button"
                   onClick={() => handleTargetClick(target.id)}
-                  className={`p-4 rounded-2xl border-3 flex items-center justify-center transition-all cursor-pointer min-h-[64px] ${
+                  className={`p-4 rounded-2xl border-[3px] flex items-center justify-center transition-all cursor-pointer min-h-[64px] ${
                     matchedWordId
-                      ? 'bg-emerald-100 border-emerald-400 text-emerald-900 shadow-xs'
-                      : 'bg-white border-slate-200 hover:border-sky-400 shadow-xs hover:scale-102'
+                      ? 'bg-emerald-100 border-emerald-400 text-emerald-900 shadow-sm'
+                      : 'bg-white border-slate-200 hover:border-sky-400 shadow-sm hover:scale-[1.02]'
                   }`}
                 >
                   <span className="text-4xl sm:text-5xl">{target.icon}</span>
@@ -508,9 +543,9 @@ const SequenceOrderingQuestion = ({ currentOrder, onMoveUp, onMoveDown }) => {
       {currentOrder.map((item, index) => (
         <div
           key={item.id}
-          className="flex items-center gap-3 p-4 bg-white border-3 border-teal-200 rounded-2xl shadow-sm hover:shadow-md transition-all"
+          className="flex items-center gap-3 p-4 bg-white border-[3px] border-teal-200 rounded-2xl shadow-sm hover:shadow-md transition-all"
         >
-          <div className="w-10 h-10 rounded-full bg-teal-600 text-white font-black text-xl flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-10 h-10 rounded-full bg-teal-600 text-white font-black text-xl flex items-center justify-center shrink-0 shadow-sm">
             {index + 1}
           </div>
           <div className="flex-1 text-slate-800 font-bold text-lg leading-snug">
@@ -518,6 +553,7 @@ const SequenceOrderingQuestion = ({ currentOrder, onMoveUp, onMoveDown }) => {
           </div>
           <div className="flex flex-col gap-1 shrink-0">
             <button
+              type="button"
               disabled={index === 0}
               onClick={() => {
                 playSoundEffect('pop');
@@ -528,6 +564,7 @@ const SequenceOrderingQuestion = ({ currentOrder, onMoveUp, onMoveDown }) => {
               <ChevronUp className="w-5 h-5" />
             </button>
             <button
+              type="button"
               disabled={index === currentOrder.length - 1}
               onClick={() => {
                 playSoundEffect('pop');
@@ -557,14 +594,15 @@ const TextMultipleChoiceQuestion = ({ question, selectedOption, onSelect }) => {
         return (
           <button
             key={opt.id}
+            type="button"
             onClick={() => {
               playSoundEffect('pop');
               onSelect(opt.id);
             }}
-            className={`p-4 rounded-2xl border-3 text-left transition-all duration-200 cursor-pointer flex items-start gap-3 ${
+            className={`p-4 rounded-2xl border-[3px] text-left transition-all duration-200 cursor-pointer flex items-start gap-3 ${
               isSelected
-                ? 'bg-sky-100 border-sky-500 text-sky-950 font-black shadow-md scale-101'
-                : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 font-bold shadow-xs'
+                ? 'bg-sky-100 border-sky-500 text-sky-950 font-black shadow-md scale-[1.01]'
+                : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 font-bold shadow-sm'
             }`}
           >
             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mt-0.5 shrink-0 ${
@@ -595,11 +633,10 @@ export default function App() {
   const [feedback, setFeedback] = useState(null);
 
   const speakText = (text, isSlow = false) => {
-    if (!('speechSynthesis' in window)) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    // Slower speech rate for young ESL children reading word by word
     utterance.rate = isSlow || selectedLevelId === 'A1' ? 0.75 : 0.85; 
     utterance.pitch = 1.1;
 
@@ -611,7 +648,7 @@ export default function App() {
   };
 
   const stopAudio = () => {
-    if ('speechSynthesis' in window) {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
     setIsPlayingAudio(false);
@@ -627,7 +664,7 @@ export default function App() {
         [currentQuestion.id]: [...currentQuestion.items]
       }));
     }
-  }, [currentQuestionIdx, selectedLevelId]);
+  }, [currentQuestionIdx, selectedLevelId, currentQuestion]);
 
   const handleStartAssessment = (levelId) => {
     playSoundEffect('pop');
@@ -736,6 +773,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-800 font-sans flex flex-col justify-between relative overflow-hidden select-none">
       
+      <CustomAnimationStyles />
+
       {/* Background Ocean Gradient */}
       <div className="fixed inset-0 bg-gradient-to-b from-sky-400 via-blue-600 to-indigo-950 pointer-events-none z-0"></div>
       <UnderwaterBubbles />
@@ -747,7 +786,7 @@ export default function App() {
             🌊
           </div>
           <div>
-            <h1 className="font-black text-xl sm:text-2xl tracking-tight drop-shadow-xs">
+            <h1 className="font-black text-xl sm:text-2xl tracking-tight drop-shadow-sm">
               Ocean Reading Assessment
             </h1>
             <p className="text-xs text-sky-100 font-medium">Adapted for CEFR A1 & A2 (Aged 10)</p>
@@ -787,7 +826,7 @@ export default function App() {
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
                 placeholder="e.g. Alex"
-                className="w-full px-5 py-3.5 rounded-2xl border-3 border-sky-300 focus:border-amber-400 focus:outline-hidden text-xl font-bold text-slate-800 shadow-inner bg-white"
+                className="w-full px-5 py-3.5 rounded-2xl border-[3px] border-sky-300 focus:border-amber-400 focus:outline-none text-xl font-bold text-slate-800 shadow-inner bg-white"
               />
             </div>
 
@@ -797,8 +836,9 @@ export default function App() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
+                type="button"
                 onClick={() => handleStartAssessment('A1')}
-                className="p-6 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-500 hover:from-cyan-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all cursor-pointer border-3 border-white/50 flex flex-col items-center gap-2 group transform hover:-translate-y-1"
+                className="p-6 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-500 hover:from-cyan-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all cursor-pointer border-4 border-white/50 flex flex-col items-center gap-2 group transform hover:-translate-y-1"
               >
                 <span className="text-5xl group-hover:scale-110 transition-transform">🐬</span>
                 <span className="font-black text-2xl">Level 1 (A1)</span>
@@ -809,8 +849,9 @@ export default function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() => handleStartAssessment('A2')}
-                className="p-6 rounded-3xl bg-gradient-to-br from-emerald-400 to-teal-600 hover:from-emerald-500 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all cursor-pointer border-3 border-white/50 flex flex-col items-center gap-2 group transform hover:-translate-y-1"
+                className="p-6 rounded-3xl bg-gradient-to-br from-emerald-400 to-teal-600 hover:from-emerald-500 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all cursor-pointer border-4 border-white/50 flex flex-col items-center gap-2 group transform hover:-translate-y-1"
               >
                 <span className="text-5xl group-hover:scale-110 transition-transform">🐢</span>
                 <span className="font-black text-2xl">Level 2 (A2)</span>
@@ -875,6 +916,7 @@ export default function App() {
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => {
                       if (isPlayingAudio) {
                         stopAudio();
@@ -885,7 +927,7 @@ export default function App() {
                         speakText(fullPassageText);
                       }
                     }}
-                    className={`px-3.5 py-2 rounded-xl font-black text-sm flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                    className={`px-3.5 py-2 rounded-xl font-black text-sm flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
                       isPlayingAudio
                         ? 'bg-amber-500 text-white animate-pulse'
                         : 'bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200'
@@ -927,6 +969,7 @@ export default function App() {
                     Question {currentQuestionIdx + 1}
                   </span>
                   <button
+                    type="button"
                     onClick={() => {
                       if (currentQuestion) {
                         speakText(currentQuestion.prompt);
@@ -1000,7 +1043,7 @@ export default function App() {
               {/* Feedback & Navigation Actions */}
               <div className="mt-6 pt-4 border-t border-slate-200">
                 {feedback && (
-                  <div className={`p-4 rounded-2xl mb-4 font-black text-lg flex items-center gap-3 animate-in fade-in duration-200 ${
+                  <div className={`p-4 rounded-2xl mb-4 font-black text-lg flex items-center gap-3 ${
                     feedback.isCorrect 
                       ? 'bg-emerald-100 text-emerald-950 border-2 border-emerald-400' 
                       : 'bg-amber-100 text-amber-950 border-2 border-amber-400'
@@ -1016,6 +1059,7 @@ export default function App() {
 
                 <div className="flex items-center justify-between gap-3">
                   <button
+                    type="button"
                     onClick={() => {
                       if (currentQuestionIdx > 0) {
                         setCurrentQuestionIdx(prev => prev - 1);
@@ -1030,6 +1074,7 @@ export default function App() {
 
                   {!feedback?.isCorrect ? (
                     <button
+                      type="button"
                       onClick={handleCheckAnswer}
                       className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-amber-950 font-black text-xl shadow-lg hover:shadow-xl transition-all cursor-pointer border-b-4 border-amber-600 flex items-center justify-center gap-2"
                     >
@@ -1037,6 +1082,7 @@ export default function App() {
                     </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={handleNextQuestion}
                       className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xl shadow-lg hover:shadow-xl transition-all cursor-pointer border-b-4 border-emerald-700 flex items-center justify-center gap-2"
                     >
@@ -1057,7 +1103,7 @@ export default function App() {
       {/* SCREEN 3: RESULTS */}
       {currentScreen === 'results' && (
         <main className="relative z-10 max-w-3xl mx-auto px-4 py-8 flex-1 flex flex-col justify-center items-center text-center">
-          <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 sm:p-10 shadow-2xl border-4 border-amber-300 w-full animate-in zoom-in duration-300">
+          <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 sm:p-10 shadow-2xl border-4 border-amber-300 w-full">
             
             <div className="text-6xl mb-2 animate-bounce">🏆</div>
 
@@ -1096,7 +1142,7 @@ export default function App() {
             </div>
 
             {/* Score Box */}
-            <div className="bg-sky-50 border-3 border-sky-200 rounded-2xl p-5 mb-6 max-w-md mx-auto shadow-inner">
+            <div className="bg-sky-50 border-[3px] border-sky-200 rounded-2xl p-5 mb-6 max-w-md mx-auto shadow-inner">
               <div className="text-xs font-black text-sky-800 uppercase tracking-wider mb-1">
                 Final Score
               </div>
@@ -1121,16 +1167,16 @@ export default function App() {
                 Badges Earned:
               </h3>
               <div className="flex flex-wrap justify-center gap-3">
-                <div className="bg-amber-100 border-2 border-amber-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-amber-950 font-bold shadow-xs">
+                <div className="bg-amber-100 border-2 border-amber-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-amber-950 font-bold shadow-sm">
                   <Award className="w-5 h-5 text-amber-600" /> Ocean Explorer
                 </div>
                 {selectedLevelId === 'A1' && (
-                  <div className="bg-cyan-100 border-2 border-cyan-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-cyan-950 font-bold shadow-xs">
+                  <div className="bg-cyan-100 border-2 border-cyan-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-cyan-950 font-bold shadow-sm">
                     🐬 Word Star (A1)
                   </div>
                 )}
                 {selectedLevelId === 'A2' && (
-                  <div className="bg-emerald-100 border-2 border-emerald-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-emerald-950 font-bold shadow-xs">
+                  <div className="bg-emerald-100 border-2 border-emerald-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-emerald-950 font-bold shadow-sm">
                     🐢 Sentence Master (A2)
                   </div>
                 )}
@@ -1140,6 +1186,7 @@ export default function App() {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
+                type="button"
                 onClick={() => handleStartAssessment(selectedLevelId)}
                 className="py-3.5 px-6 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-black text-lg shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
               >
@@ -1147,6 +1194,7 @@ export default function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() => {
                   playSoundEffect('pop');
                   setCurrentScreen('welcome');
