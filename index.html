@@ -1,1218 +1,1490 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Volume2, VolumeX, Award, Star, ArrowRight, RotateCcw, 
-  CheckCircle2, XCircle, Sparkles, HelpCircle, ChevronRight, 
-  ChevronDown, ChevronUp, MoveVertical, Play, Pause, Anchor,
-  Compass, Shield, RefreshCw, User, BookOpen, Smile
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ocean Reading Quest - English Assessment for Young Learners</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Lexend -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-const CustomAnimationStyles = () => (
-  <style>{`
-    @keyframes floatSlow {
-      0%, 100% { transform: translateY(0px) scale(1); opacity: 0.6; }
-      50% { transform: translateY(-50px) scale(1.1); opacity: 0.9; }
-    }
-    @keyframes floatMedium {
-      0%, 100% { transform: translateY(0px) scale(1); opacity: 0.5; }
-      50% { transform: translateY(-70px) scale(1.15); opacity: 0.85; }
-    }
-    @keyframes floatFast {
-      0%, 100% { transform: translateY(0px) scale(1); opacity: 0.7; }
-      50% { transform: translateY(-90px) scale(1.2); opacity: 1; }
-    }
-    @keyframes bounceSlow {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
-    }
-
-    .animate-float-slow { animation: floatSlow 6s ease-in-out infinite; }
-    .animate-float-medium { animation: floatMedium 4.5s ease-in-out infinite; }
-    .animate-float-fast { animation: floatFast 3s ease-in-out infinite; }
-    .animate-bounce-slow { animation: bounceSlow 3s ease-in-out infinite; }
-  `}</style>
-);
-
-const createAudioContext = () => {
-  if (typeof window === 'undefined') return null;
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  return AudioContext ? new AudioContext() : null;
-};
-
-const playSoundEffect = (type) => {
-  try {
-    const ctx = createAudioContext();
-    if (!ctx) return;
-
-    if (type === 'success') {
-      const now = ctx.currentTime;
-      [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.15, now + idx * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + idx * 0.08);
-        osc.stop(now + idx * 0.08 + 0.25);
-      });
-    } else if (type === 'error') {
-      const now = ctx.currentTime;
-      [220, 196].forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.12, now + idx * 0.12);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.18);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + idx * 0.12);
-        osc.stop(now + idx * 0.12 + 0.2);
-      });
-    } else if (type === 'pop') {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(400, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.06);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.06);
-    } else if (type === 'celebrate') {
-      const now = ctx.currentTime;
-      const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
-      notes.forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.15, now + idx * 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + idx * 0.06);
-        osc.stop(now + 1.3);
-      });
-    }
-  } catch (e) {
-    console.warn('Audio effect playback failed', e);
-  }
-};
-
-const READ_ASSESSMENT_DATA = {
-  A1: {
-    id: 'A1',
-    levelTitle: 'Level 1: Beginner (A1)',
-    cefrBadge: 'CEFR A1 • Word-by-Word & Literal Facts',
-    topic: 'The Playful Dolphin',
-    avatar: '🐬',
-    bgGradient: 'from-cyan-500 to-blue-600',
-    passageTitle: 'The Playful Dolphin',
-    readingTip: 'Read word by word. Focus on simple facts!',
-    passageParagraphs: [
-      {
-        text: 'This is a dolphin. Dolphins live in the warm {ocean}. The ocean is big and blue.',
-        highlights: {
-          ocean: { word: 'ocean', emoji: '🌊', definition: 'A big blue sea with water.' }
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ocean: {
+                            deep: '#03045e',
+                            dark: '#023e8a',
+                            mid: '#0077b6',
+                            light: '#00b4d8',
+                            shallow: '#90e0ef',
+                            foam: '#caf0f8'
+                        },
+                        coral: {
+                            light: '#ff9999',
+                            DEFAULT: '#ff6b6b',
+                            dark: '#ee5253'
+                        },
+                        sand: {
+                            light: '#ffeaa7',
+                            DEFAULT: '#fdcb6e'
+                        },
+                        seaweed: {
+                            DEFAULT: '#10b981',
+                            dark: '#059669'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Lexend', 'sans-serif']
+                    }
+                }
+            }
         }
-      },
-      {
-        text: 'Dolphins are not fish. They are {mammals}. Dolphins need air. They {jump} out of the water to get air.',
-        highlights: {
-          mammals: { word: 'mammals', emoji: '🫁', definition: 'Animals that breathe air and feed milk to babies.' },
-          jump: { word: 'jump', emoji: '🐬', definition: 'To leap up into the air.' }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            font-size: 20px;
+            line-height: 1.6;
+            background: linear-gradient(180deg, #023e8a 0%, #03045e 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+            user-select: none;
         }
-      },
-      {
-        text: 'Dolphins are smart and friendly. They eat small {fish} and swim fast with friends.',
-        highlights: {
-          fish: { word: 'fish', emoji: '🐟', definition: 'Small animals that swim in water.' }
+
+        /* Animated underwater bubbles */
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.25);
+            border: 1.5px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatUp linear infinite;
         }
-      }
-    ],
-    questions: [
-      {
-        id: 'q1_a1',
-        type: 'multiple_choice_image',
-        prompt: 'Where do dolphins live?',
-        subtitle: 'Literal detail check:',
-        options: [
-          { id: 'a', text: 'In a forest', icon: '🌲', imageAlt: 'Forest' },
-          { id: 'b', text: 'In the warm ocean', icon: '🌊', imageAlt: 'Ocean', isCorrect: true },
-          { id: 'c', text: 'On a farm', icon: '🚜', imageAlt: 'Farm' }
-        ]
-      },
-      {
-        id: 'q2_a1',
-        type: 'true_false',
-        prompt: 'Dolphins can breathe underwater like fish.',
-        subtitle: 'Fact check from story:',
-        correctValue: false,
-        explanation: 'False! Dolphins are mammals and jump up to get air.'
-      },
-      {
-        id: 'q3_a1',
-        type: 'matching',
-        prompt: 'Read each sentence and tap its picture!',
-        pairs: [
-          { id: 'm1', sentence: 'This animal is a dolphin.', icon: '🐬' },
-          { id: 'm2', sentence: 'The ocean is big and blue.', icon: '🌊' },
-          { id: 'm3', sentence: 'Dolphins eat small fish.', icon: '🐟' }
-        ]
-      },
-      {
-        id: 'q4_a1',
-        type: 'multiple_choice_text',
-        prompt: 'What do dolphins eat?',
-        subtitle: 'Local detail search:',
-        options: [
-          { id: 'a', text: 'Apples and bananas', isCorrect: false },
-          { id: 'b', text: 'Small fish', isCorrect: true },
-          { id: 'c', text: 'Bread and cheese', isCorrect: false }
-        ]
-      },
-      {
-        id: 'q5_a1',
-        type: 'multiple_choice_text',
-        prompt: 'Why do dolphins jump out of the water?',
-        subtitle: 'Simple cause and effect:',
-        options: [
-          { id: 'a', text: 'To get air to breathe', isCorrect: true },
-          { id: 'b', text: 'To sleep on a tree', isCorrect: false },
-          { id: 'c', text: 'To run on sand', isCorrect: false }
-        ]
-      }
-    ]
-  },
 
-  A2: {
-    id: 'A2',
-    levelTitle: 'Level 2: Elementary (A2)',
-    cefrBadge: 'CEFR A2 • Connected Sentences & Connectors',
-    topic: 'The Journey of Sea Turtles',
-    avatar: '🐢',
-    bgGradient: 'from-emerald-500 to-teal-700',
-    passageTitle: 'The Journey of Sea Turtles',
-    readingTip: 'Look for linking words like because, when, and so!',
-    passageParagraphs: [
-      {
-        text: 'Sea turtles are quiet ocean animals. They have a hard {shell} on their back because it {protects} them from big sharks.',
-        highlights: {
-          shell: { word: 'shell', emoji: '🐢', definition: 'A hard outer cover that keeps an animal safe.' },
-          protects: { word: 'protects', emoji: '🛡️', definition: 'Keeps safe from danger.' }
+        @keyframes floatUp {
+            0% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
         }
-      },
-      {
-        text: 'Turtles like to eat jellyfish. But plastic bags look like jellyfish in the water, so turtles eat plastic by mistake and get sick.',
-        highlights: {}
-      },
-      {
-        text: 'When a mother turtle is ready to lay eggs, she swims to the sand beach. She digs a hole so her eggs stay safe. After two months, baby turtles {hatch} and race into the ocean!',
-        highlights: {
-          hatch: { word: 'hatch', emoji: '🥚', definition: 'To come out of an egg when born.' }
+
+        /* Swimming fish animations */
+        .swimming-fish {
+            position: absolute;
+            pointer-events: none;
+            animation: swim linear infinite;
+            z-index: 1;
         }
-      }
-    ],
-    questions: [
-      {
-        id: 'q1_a2',
-        type: 'multiple_choice_text',
-        prompt: 'Why do sea turtles have a hard shell on their back?',
-        subtitle: 'Cause & Effect (because):',
-        options: [
-          { id: 'a', text: 'To sleep comfortably on sand', isCorrect: false },
-          { id: 'b', text: 'Because it protects them from big sharks', isCorrect: true },
-          { id: 'c', text: 'To swim faster than fish', isCorrect: false }
-        ]
-      },
-      {
-        id: 'q2_a2',
-        type: 'multiple_choice_text',
-        prompt: 'Why do sea turtles eat plastic bags by mistake?',
-        subtitle: 'Sentence Connectors (so / look like):',
-        options: [
-          { id: 'a', text: 'Because plastic bags look like jellyfish in water', isCorrect: true },
-          { id: 'b', text: 'Because plastic tastes like sweet candy', isCorrect: false },
-          { id: 'c', text: 'Because fish throw plastic at them', isCorrect: false }
-        ]
-      },
-      {
-        id: 'q3_a2',
-        type: 'sequence',
-        prompt: "Put the mother sea turtle's story in order (1 to 3):",
-        items: [
-          { id: 's2', text: 'She digs a hole in the sand to hide her eggs.', correctOrder: 2 },
-          { id: 's1', text: 'She swims to the sand beach when ready.', correctOrder: 1 },
-          { id: 's3', text: 'Baby turtles hatch and race into the ocean.', correctOrder: 3 }
-        ]
-      },
-      {
-        id: 'q4_a2',
-        type: 'context_vocabulary',
-        prompt: 'What does the word "protects" mean in the story?',
-        passageContext: '"...a hard shell on their back because it protects them from big sharks."',
-        options: [
-          { id: 'a', text: 'Makes them shiny and pretty', isCorrect: false },
-          { id: 'b', text: 'Keeps them safe from danger', isCorrect: true },
-          { id: 'c', text: 'Helps them jump very high', isCorrect: false }
-        ]
-      },
-      {
-        id: 'q5_a2',
-        type: 'multiple_choice_text',
-        prompt: 'What is the main idea of this story?',
-        subtitle: 'Global Understanding:',
-        options: [
-          { id: 'a', text: 'Sea turtles live in forests and fly in the sky', isCorrect: false },
-          { id: 'b', text: 'Sea turtles have shells for protection, lay eggs on sand, and need clean oceans', isCorrect: true },
-          { id: 'c', text: 'Sharks like to play games with baby turtles', isCorrect: false }
-        ]
-      }
-    ]
-  }
-};
 
-const SubmarineIcon = ({ className = "w-10 h-10" }) => (
-  <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M15 50 C15 35 30 25 55 25 C80 25 90 38 90 50 C90 62 80 75 55 75 C30 75 15 65 15 50 Z" fill="#FBBF24" stroke="#D97706" strokeWidth="4" />
-    <circle cx="40" cy="50" r="7" fill="#38BDF8" stroke="#0284C7" strokeWidth="3" />
-    <circle cx="60" cy="50" r="7" fill="#38BDF8" stroke="#0284C7" strokeWidth="3" />
-    <path d="M50 25 L50 12 C50 10 52 8 55 8 L62 8" stroke="#F59E0B" strokeWidth="5" strokeLinecap="round" />
-    <path d="M15 42 L5 38 V62 L15 58 Z" fill="#F59E0B" />
-    <circle cx="90" cy="50" r="3" fill="#EF4444" />
-  </svg>
-);
+        @keyframes swim {
+            0% { transform: translateX(-120px) scaleX(1); }
+            50% { transform: translateX(calc(100vw + 60px)) scaleX(1); }
+            50.1% { transform: translateX(calc(100vw + 60px)) scaleX(-1); }
+            100% { transform: translateX(-120px) scaleX(-1); }
+        }
 
-const UnderwaterBubbles = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-    <div className="bubble bubble-1 absolute bottom-[-20px] left-[10%] w-8 h-8 rounded-full bg-white/20 border border-white/40 animate-float-slow"></div>
-    <div className="bubble bubble-2 absolute bottom-[-20px] left-[30%] w-5 h-5 rounded-full bg-white/25 border border-white/40 animate-float-medium"></div>
-    <div className="bubble bubble-3 absolute bottom-[-20px] left-[65%] w-10 h-10 rounded-full bg-white/15 border border-white/30 animate-float-slow"></div>
-    <div className="bubble bubble-4 absolute bottom-[-20px] left-[85%] w-6 h-6 rounded-full bg-white/20 border border-white/40 animate-float-fast"></div>
-  </div>
-);
+        .sub-propeller {
+            transform-origin: center;
+            animation: spinPropeller 0.4s linear infinite;
+        }
 
-const InteractivePassageText = ({ paragraph, onSpeakWord }) => {
-  const [activeTooltip, setActiveTooltip] = useState(null);
+        @keyframes spinPropeller {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
 
-  const renderTextParts = () => {
-    const parts = [];
-    const text = paragraph.text;
-    const regex = /\{(\w+)\}/g;
-    let lastIndex = 0;
-    let match;
+        /* HIGH-CONTRAST ACCESSIBLE VOCABULARY HIGHLIGHT STYLE */
+        .vocab-word {
+            background-color: #facc15 !important; /* Bright Yellow */
+            color: #000000 !important; /* Deep Black for max contrast */
+            border: 3px solid #ea580c !important; /* Bold Orange Border */
+            font-weight: 900 !important;
+            padding: 4px 12px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(250, 204, 21, 0.6);
+            vertical-align: middle;
+            margin: 2px 4px;
+            line-height: 1.2;
+        }
 
-    while ((match = regex.exec(text)) !== null) {
-      const matchIndex = match.index;
-      const wordKey = match[1];
-      const highlightInfo = paragraph.highlights[wordKey];
+        .vocab-word:hover {
+            background-color: #fef08a !important;
+            border-color: #c2410c !important;
+            transform: translateY(-2px) scale(1.08);
+            box-shadow: 0 8px 18px rgba(234, 88, 12, 0.5);
+        }
 
-      if (matchIndex > lastIndex) {
-        parts.push(text.substring(lastIndex, matchIndex));
-      }
+        .vocab-word:active, .vocab-word.playing-audio {
+            background-color: #4ade80 !important; /* Emerald green flash on audio click */
+            border-color: #15803d !important;
+            color: #052e16 !important;
+            box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.8) !important;
+        }
 
-      if (highlightInfo) {
-        parts.push(
-          <span key={matchIndex} className="relative inline-block mx-1">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                playSoundEffect('pop');
-                setActiveTooltip(activeTooltip === wordKey ? null : wordKey);
-                onSpeakWord(highlightInfo.word);
-              }}
-              className="px-2.5 py-1 rounded-xl bg-amber-300 hover:bg-amber-400 text-amber-950 font-extrabold underline decoration-wavy decoration-amber-600 transition-all hover:scale-105 shadow-sm cursor-pointer inline-flex items-center gap-1 text-xl sm:text-2xl"
-            >
-              <span>{highlightInfo.word}</span>
-              <span className="text-lg">{highlightInfo.emoji}</span>
-            </button>
+        .vocab-speaker-icon {
+            background-color: #000000;
+            color: #facc15;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
 
-            {activeTooltip === wordKey && (
-              <div 
-                className="absolute left-1/2 bottom-full mb-3 -translate-x-1/2 w-64 p-3.5 bg-white rounded-2xl shadow-2xl border-4 border-amber-400 z-50 text-slate-800"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between border-b pb-1.5 mb-2 border-slate-100">
-                  <span className="font-extrabold text-lg text-amber-600 capitalize flex items-center gap-2">
-                    <span className="text-2xl">{highlightInfo.emoji}</span> {highlightInfo.word}
-                  </span>
-                  <button 
-                    type="button"
-                    onClick={() => setActiveTooltip(null)}
-                    className="text-slate-400 hover:text-slate-600 p-1 rounded-full text-xs font-bold"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="text-base text-slate-700 font-medium leading-snug">
-                  {highlightInfo.definition}
-                </div>
-                <div className="mt-2.5 pt-1.5 border-t border-slate-100 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => onSpeakWord(highlightInfo.word)}
-                    className="text-xs bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg font-bold hover:bg-amber-200 flex items-center gap-1 cursor-pointer"
-                  >
-                    <Volume2 className="w-3.5 h-3.5 text-amber-700" /> Listen
-                  </button>
-                </div>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-amber-400"></div>
-              </div>
-            )}
-          </span>
-        );
-      } else {
-        parts.push(wordKey);
-      }
+        /* Glassmorphism containers */
+        .ocean-card {
+            background: rgba(255, 255, 255, 0.96);
+            color: #0f172a;
+            backdrop-filter: blur(12px);
+            border: 4px solid rgba(144, 224, 239, 0.85);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+            border-radius: 24px;
+        }
 
-      lastIndex = regex.lastIndex;
-    }
+        /* Choice Buttons */
+        .choice-btn {
+            background: #ffffff;
+            border: 3px solid #cbd5e1;
+            color: #1e293b;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
+        .choice-btn:hover:not(:disabled) {
+            border-color: #00b4d8;
+            background: #f0fdf4;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0, 180, 216, 0.2);
+        }
 
-    return parts;
-  };
+        .choice-btn.selected-correct {
+            background: #dcfce7 !important;
+            border-color: #22c55e !important;
+            color: #15803d !important;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3) !important;
+        }
 
-  return (
-    <div className="mb-4 text-slate-800 text-xl sm:text-2xl leading-relaxed font-sans font-medium tracking-normal">
-      {renderTextParts()}
+        .choice-btn.selected-incorrect {
+            background: #fee2e2 !important;
+            border-color: #ef4444 !important;
+            color: #b91c1c !important;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(2, 62, 138, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00b4d8;
+            border-radius: 5px;
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 107, 107, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+        }
+    </style>
+</head>
+<body class="relative flex flex-col min-h-screen justify-between overflow-x-hidden">
+
+    <!-- PRELOADED HTML5 AUDIO ELEMENTS FOR INSTANT BROWSER PLAYBACK -->
+    <div id="audioPreloadContainer" class="hidden">
+        <audio id="audio-ocean" src="https://api.dictionaryapi.dev/media/pronunciations/en/ocean-us.mp3" preload="auto"></audio>
+        <audio id="audio-air" src="https://api.dictionaryapi.dev/media/pronunciations/en/air-us.mp3" preload="auto"></audio>
+        <audio id="audio-dolphin" src="https://api.dictionaryapi.dev/media/pronunciations/en/dolphin-us.mp3" preload="auto"></audio>
+        <audio id="audio-jump" src="https://api.dictionaryapi.dev/media/pronunciations/en/jump-us.mp3" preload="auto"></audio>
+        <audio id="audio-squid" src="https://api.dictionaryapi.dev/media/pronunciations/en/squid-us.mp3" preload="auto"></audio>
+        <audio id="audio-journey" src="https://api.dictionaryapi.dev/media/pronunciations/en/journey-us.mp3" preload="auto"></audio>
+        <audio id="audio-hatch" src="https://api.dictionaryapi.dev/media/pronunciations/en/hatch-us.mp3" preload="auto"></audio>
+        <audio id="audio-shell" src="https://api.dictionaryapi.dev/media/pronunciations/en/shell-us.mp3" preload="auto"></audio>
+        <audio id="audio-protects" src="https://api.dictionaryapi.dev/media/pronunciations/en/protect-us.mp3" preload="auto"></audio>
+        <audio id="audio-plastic" src="https://api.dictionaryapi.dev/media/pronunciations/en/plastic-us.mp3" preload="auto"></audio>
     </div>
-  );
-};
 
-const ImageMultipleChoiceQuestion = ({ question, selectedOption, onSelect }) => {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-4">
-      {question.options.map((opt) => {
-        const isSelected = selectedOption === opt.id;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => {
-              playSoundEffect('pop');
-              onSelect(opt.id);
-            }}
-            className={`p-4 rounded-2xl border-[3px] text-center flex flex-col items-center justify-between transition-all duration-200 cursor-pointer ${
-              isSelected
-                ? 'bg-amber-100 border-amber-500 text-amber-950 font-black shadow-lg scale-105 ring-4 ring-amber-300/50'
-                : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 font-bold shadow-sm hover:scale-[1.02]'
-            }`}
-          >
-            <div className="text-5xl sm:text-6xl my-2 transform transition-transform hover:scale-110">
-              {opt.icon}
+    <!-- Background Bubbles Dynamic Container -->
+    <div id="bubblesContainer" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- Background Fish Decoration -->
+    <div class="swimming-fish text-3xl opacity-60" style="top: 15%; animation-duration: 22s;">🐟</div>
+    <div class="swimming-fish text-4xl opacity-70" style="top: 35%; animation-duration: 18s; animation-delay: -5s;">🐠</div>
+    <div class="swimming-fish text-5xl opacity-50" style="top: 70%; animation-duration: 28s; animation-delay: -12s;">🐡</div>
+    <div class="swimming-fish text-3xl opacity-80" style="top: 85%; animation-duration: 15s; animation-delay: -8s;">🦑</div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app" class="relative z-10 flex-grow flex flex-col justify-center items-center p-3 md:p-6 max-w-5xl mx-auto w-full">
+
+        <!-- ================================================================= -->
+        <!-- 1. WELCOME SCREEN -->
+        <!-- ================================================================= -->
+        <div id="welcomeScreen" class="w-full ocean-card p-6 md:p-10 text-center transition-all duration-500 my-auto">
+            <!-- Header Mascot & Title -->
+            <div class="relative inline-block mb-4">
+                <div class="text-6xl md:text-8xl mb-2 animate-bounce">🐬</div>
+                <span class="inline-block bg-sand text-ocean-deep px-4 py-1.5 rounded-full text-xs md:text-sm font-black uppercase tracking-wider shadow-md border-2 border-amber-500">Interactive English Quest</span>
             </div>
-            <span className="text-lg font-extrabold">{opt.text}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-};
 
-const TrueFalseQuestion = ({ selectedValue, onSelect }) => {
-  return (
-    <div className="flex flex-col sm:flex-row gap-4 my-6 justify-center">
-      <button
-        type="button"
-        onClick={() => {
-          playSoundEffect('pop');
-          onSelect(true);
-        }}
-        className={`flex-1 py-6 px-8 rounded-2xl border-[3px] text-2xl font-black flex items-center justify-center gap-3 transition-all cursor-pointer ${
-          selectedValue === true
-            ? 'bg-emerald-500 text-white border-emerald-600 shadow-xl scale-105'
-            : 'bg-white text-emerald-600 border-emerald-200 hover:border-emerald-400 shadow-md'
-        }`}
-      >
-        <span className="text-3xl">👍</span> True
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          playSoundEffect('pop');
-          onSelect(false);
-        }}
-        className={`flex-1 py-6 px-8 rounded-2xl border-[3px] text-2xl font-black flex items-center justify-center gap-3 transition-all cursor-pointer ${
-          selectedValue === false
-            ? 'bg-rose-500 text-white border-rose-600 shadow-xl scale-105'
-            : 'bg-white text-rose-600 border-rose-200 hover:border-rose-400 shadow-md'
-        }`}
-      >
-        <span className="text-3xl">👎</span> False
-      </button>
-    </div>
-  );
-};
-
-const MatchingQuestion = ({ pairs, matches, onMatchPair }) => {
-  const [selectedWord, setSelectedWord] = useState(null);
-
-  const sentences = pairs.map(p => ({ id: p.id, text: p.sentence }));
-  const targets = pairs.map(p => ({ id: p.id, icon: p.icon }));
-
-  const handleWordClick = (wordId) => {
-    playSoundEffect('pop');
-    setSelectedWord(wordId);
-  };
-
-  const handleTargetClick = (targetId) => {
-    if (selectedWord) {
-      playSoundEffect('pop');
-      onMatchPair(selectedWord, targetId);
-      setSelectedWord(null);
-    }
-  };
-
-  return (
-    <div className="my-4">
-      <p className="text-xs sm:text-sm text-sky-800 font-bold mb-3 text-center bg-sky-100 py-1.5 px-4 rounded-full inline-block mx-auto border border-sky-200">
-        👉 Tap a sentence on the left, then tap its picture on the right!
-      </p>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Left Column: Sentences */}
-        <div className="flex flex-col gap-3">
-          <h4 className="font-extrabold text-slate-600 text-xs uppercase tracking-wider text-center">Sentences</h4>
-          {sentences.map((item) => {
-            const matchedTargetId = matches[item.id];
-            const isSelected = selectedWord === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleWordClick(item.id)}
-                className={`p-3.5 rounded-2xl border-[3px] text-base sm:text-lg font-black flex items-center justify-between transition-all cursor-pointer text-left ${
-                  matchedTargetId
-                    ? 'bg-emerald-100 border-emerald-400 text-emerald-900'
-                    : isSelected
-                    ? 'bg-amber-200 border-amber-500 text-amber-950 ring-4 ring-amber-300/50 scale-[1.02]'
-                    : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 shadow-sm'
-                }`}
-              >
-                <span>{item.text}</span>
-                {matchedTargetId && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 ml-2" />}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Right Column: Pictures ONLY */}
-        <div className="flex flex-col gap-3">
-          <h4 className="font-extrabold text-slate-600 text-xs uppercase tracking-wider text-center">Pictures</h4>
-          <div className="flex flex-col gap-3">
-            {targets.map((target) => {
-              const matchedWordId = Object.keys(matches).find(k => matches[k] === target.id);
-              return (
-                <button
-                  key={target.id}
-                  type="button"
-                  onClick={() => handleTargetClick(target.id)}
-                  className={`p-4 rounded-2xl border-[3px] flex items-center justify-center transition-all cursor-pointer min-h-[64px] ${
-                    matchedWordId
-                      ? 'bg-emerald-100 border-emerald-400 text-emerald-900 shadow-sm'
-                      : 'bg-white border-slate-200 hover:border-sky-400 shadow-sm hover:scale-[1.02]'
-                  }`}
-                >
-                  <span className="text-4xl sm:text-5xl">{target.icon}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SequenceOrderingQuestion = ({ currentOrder, onMoveUp, onMoveDown }) => {
-  return (
-    <div className="my-4 flex flex-col gap-3">
-      <p className="text-xs sm:text-sm text-teal-900 font-bold mb-1 text-center bg-teal-100 py-1.5 px-4 rounded-full inline-block border border-teal-200">
-        Use arrows to arrange the events in order from 1 to 3!
-      </p>
-
-      {currentOrder.map((item, index) => (
-        <div
-          key={item.id}
-          className="flex items-center gap-3 p-4 bg-white border-[3px] border-teal-200 rounded-2xl shadow-sm hover:shadow-md transition-all"
-        >
-          <div className="w-10 h-10 rounded-full bg-teal-600 text-white font-black text-xl flex items-center justify-center shrink-0 shadow-sm">
-            {index + 1}
-          </div>
-          <div className="flex-1 text-slate-800 font-bold text-lg leading-snug">
-            {item.text}
-          </div>
-          <div className="flex flex-col gap-1 shrink-0">
-            <button
-              type="button"
-              disabled={index === 0}
-              onClick={() => {
-                playSoundEffect('pop');
-                onMoveUp(index);
-              }}
-              className="p-1.5 rounded-lg bg-slate-100 hover:bg-teal-100 disabled:opacity-30 disabled:hover:bg-slate-100 text-slate-700 cursor-pointer"
-            >
-              <ChevronUp className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              disabled={index === currentOrder.length - 1}
-              onClick={() => {
-                playSoundEffect('pop');
-                onMoveDown(index);
-              }}
-              className="p-1.5 rounded-lg bg-slate-100 hover:bg-teal-100 disabled:opacity-30 disabled:hover:bg-slate-100 text-slate-700 cursor-pointer"
-            >
-              <ChevronDown className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const TextMultipleChoiceQuestion = ({ question, selectedOption, onSelect }) => {
-  return (
-    <div className="flex flex-col gap-3 my-4">
-      {question.passageContext && (
-        <div className="p-3 bg-amber-50 border-l-4 border-amber-400 rounded-r-xl italic text-slate-800 text-base font-medium mb-2">
-          {question.passageContext}
-        </div>
-      )}
-      {question.options.map((opt) => {
-        const isSelected = selectedOption === opt.id;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => {
-              playSoundEffect('pop');
-              onSelect(opt.id);
-            }}
-            className={`p-4 rounded-2xl border-[3px] text-left transition-all duration-200 cursor-pointer flex items-start gap-3 ${
-              isSelected
-                ? 'bg-sky-100 border-sky-500 text-sky-950 font-black shadow-md scale-[1.01]'
-                : 'bg-white border-slate-200 hover:border-sky-300 text-slate-800 font-bold shadow-sm'
-            }`}
-          >
-            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mt-0.5 shrink-0 ${
-              isSelected ? 'border-sky-600 bg-sky-500 text-white' : 'border-slate-300'
-            }`}>
-              {isSelected && <span className="text-xs font-bold">✓</span>}
-            </div>
-            <span className="text-lg leading-snug">{opt.text}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-};
-
-export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('welcome');
-  const [studentName, setStudentName] = useState('');
-  const [selectedLevelId, setSelectedLevelId] = useState('A1');
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
-  
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-
-  const [userAnswers, setUserAnswers] = useState({});
-  const [sequenceOrders, setSequenceOrders] = useState({});
-  const [matchingPairs, setMatchingPairs] = useState({});
-
-  const [feedback, setFeedback] = useState(null);
-
-  const speakText = (text, isSlow = false) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = isSlow || selectedLevelId === 'A1' ? 0.75 : 0.85; 
-    utterance.pitch = 1.1;
-
-    utterance.onstart = () => setIsPlayingAudio(true);
-    utterance.onend = () => setIsPlayingAudio(false);
-    utterance.onerror = () => setIsPlayingAudio(false);
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const stopAudio = () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-    setIsPlayingAudio(false);
-  };
-
-  const currentLevelData = READ_ASSESSMENT_DATA[selectedLevelId];
-  const currentQuestion = currentLevelData?.questions[currentQuestionIdx];
-
-  useEffect(() => {
-    if (currentQuestion?.type === 'sequence' && !sequenceOrders[currentQuestion.id]) {
-      setSequenceOrders(prev => ({
-        ...prev,
-        [currentQuestion.id]: [...currentQuestion.items]
-      }));
-    }
-  }, [currentQuestionIdx, selectedLevelId, currentQuestion]);
-
-  const handleStartAssessment = (levelId) => {
-    playSoundEffect('pop');
-    setSelectedLevelId(levelId);
-    setCurrentQuestionIdx(0);
-    setUserAnswers({});
-    setFeedback(null);
-    setCurrentScreen('assessment');
-  };
-
-  const handleCheckAnswer = () => {
-    if (!currentQuestion) return;
-
-    let isCorrect = false;
-
-    if (currentQuestion.type === 'multiple_choice_image' || currentQuestion.type === 'multiple_choice_text' || currentQuestion.type === 'context_vocabulary') {
-      const selectedId = userAnswers[currentQuestion.id];
-      const correctOpt = currentQuestion.options.find(o => o.isCorrect);
-      isCorrect = selectedId === correctOpt?.id;
-    } else if (currentQuestion.type === 'true_false') {
-      const val = userAnswers[currentQuestion.id];
-      isCorrect = val === currentQuestion.correctValue;
-    } else if (currentQuestion.type === 'matching') {
-      const matches = matchingPairs[currentQuestion.id] || {};
-      const totalPairs = currentQuestion.pairs.length;
-      let correctMatches = 0;
-      currentQuestion.pairs.forEach(p => {
-        if (matches[p.id] === p.id) {
-          correctMatches++;
-        }
-      });
-      isCorrect = correctMatches === totalPairs;
-    } else if (currentQuestion.type === 'sequence') {
-      const order = sequenceOrders[currentQuestion.id] || [];
-      isCorrect = order.every((item, idx) => item.correctOrder === idx + 1);
-    }
-
-    if (isCorrect) {
-      playSoundEffect('success');
-      setFeedback({ isCorrect: true, message: 'Great job! That is correct! 🎉' });
-    } else {
-      playSoundEffect('error');
-      setFeedback({ isCorrect: false, message: 'Not quite! Read the story again carefully. 🌊' });
-    }
-  };
-
-  const handleNextQuestion = () => {
-    playSoundEffect('pop');
-    setFeedback(null);
-    if (currentQuestionIdx + 1 < currentLevelData.questions.length) {
-      setCurrentQuestionIdx(prev => prev + 1);
-    } else {
-      playSoundEffect('celebrate');
-      setCurrentScreen('results');
-    }
-  };
-
-  const calculateScore = () => {
-    let score = 0;
-    currentLevelData.questions.forEach((q) => {
-      if (q.type === 'multiple_choice_image' || q.type === 'multiple_choice_text' || q.type === 'context_vocabulary') {
-        const selectedId = userAnswers[q.id];
-        const correctOpt = q.options.find(o => o.isCorrect);
-        if (selectedId === correctOpt?.id) score++;
-      } else if (q.type === 'true_false') {
-        if (userAnswers[q.id] === q.correctValue) score++;
-      } else if (q.type === 'matching') {
-        const matches = matchingPairs[q.id] || {};
-        const isAllCorrect = q.pairs.every(p => matches[p.id] === p.id);
-        if (isAllCorrect) score++;
-      } else if (q.type === 'sequence') {
-        const order = sequenceOrders[q.id] || [];
-        const isSeqCorrect = order.every((item, idx) => item.correctOrder === idx + 1);
-        if (isSeqCorrect) score++;
-      }
-    });
-    return score;
-  };
-
-  const totalQuestions = currentLevelData?.questions.length || 0;
-  const score = calculateScore();
-  const percentage = Math.round((score / (totalQuestions || 1)) * 100);
-
-  const handleMoveSequenceUp = (idx) => {
-    const qId = currentQuestion.id;
-    const currentList = [...(sequenceOrders[qId] || [])];
-    if (idx > 0) {
-      const temp = currentList[idx];
-      currentList[idx] = currentList[idx - 1];
-      currentList[idx - 1] = temp;
-      setSequenceOrders(prev => ({ ...prev, [qId]: currentList }));
-    }
-  };
-
-  const handleMoveSequenceDown = (idx) => {
-    const qId = currentQuestion.id;
-    const currentList = [...(sequenceOrders[qId] || [])];
-    if (idx < currentList.length - 1) {
-      const temp = currentList[idx];
-      currentList[idx] = currentList[idx + 1];
-      currentList[idx + 1] = temp;
-      setSequenceOrders(prev => ({ ...prev, [qId]: currentList }));
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-slate-800 font-sans flex flex-col justify-between relative overflow-hidden select-none">
-      
-      <CustomAnimationStyles />
-
-      {/* Background Ocean Gradient */}
-      <div className="fixed inset-0 bg-gradient-to-b from-sky-400 via-blue-600 to-indigo-950 pointer-events-none z-0"></div>
-      <UnderwaterBubbles />
-
-      {/* Header Bar */}
-      <header className="relative z-10 bg-white/10 backdrop-blur-md border-b border-white/20 px-4 py-3 flex items-center justify-between text-white shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-400 text-amber-950 flex items-center justify-center text-2xl shadow-md font-bold">
-            🌊
-          </div>
-          <div>
-            <h1 className="font-black text-xl sm:text-2xl tracking-tight drop-shadow-sm">
-              Ocean Reading Assessment
+            <h1 class="text-3xl md:text-5xl font-black text-ocean-dark mb-3 tracking-tight">
+                Ocean Reading Quest
             </h1>
-            <p className="text-xs text-sky-100 font-medium">Adapted for CEFR A1 & A2 (Aged 10)</p>
-          </div>
-        </div>
-
-        {studentName && (
-          <div className="flex items-center gap-2 bg-white/20 px-3.5 py-1.5 rounded-full border border-white/30 text-sm font-bold">
-            <User className="w-4 h-4 text-amber-300" />
-            <span>{studentName}</span>
-          </div>
-        )}
-      </header>
-
-      {/* SCREEN 1: WELCOME */}
-      {currentScreen === 'welcome' && (
-        <main className="relative z-10 max-w-4xl mx-auto px-4 py-8 flex-1 flex flex-col justify-center items-center text-center">
-          <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 sm:p-10 shadow-2xl border-4 border-sky-200 w-full max-w-2xl transform transition-all">
-            
-            <div className="inline-block p-4 bg-sky-100 rounded-full mb-4 shadow-inner">
-              <span className="text-6xl animate-bounce inline-block">🐬</span>
-            </div>
-
-            <h2 className="text-3xl sm:text-4xl font-black text-sky-950 mb-2">
-              Marine Life Reading Quest 🐠
-            </h2>
-            <p className="text-slate-600 text-lg font-bold mb-6">
-              Short, clear stories tailored for 10-year-old English learners!
+            <p class="text-lg md:text-2xl text-slate-700 mb-8 max-w-2xl mx-auto font-medium">
+                Explore underwater marine life, learn new English words, and test your reading comprehension skills! 🌊✨
             </p>
 
-            <div className="mb-8 max-w-md mx-auto text-left">
-              <label className="block text-xs font-black text-slate-700 mb-2 uppercase tracking-wider">
-                Enter Your Name:
-              </label>
-              <input
-                type="text"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                placeholder="e.g. Alex"
-                className="w-full px-5 py-3.5 rounded-2xl border-[3px] border-sky-300 focus:border-amber-400 focus:outline-none text-xl font-bold text-slate-800 shadow-inner bg-white"
-              />
-            </div>
+            <form id="startForm" onsubmit="handleStartAssessment(event)" class="max-w-md mx-auto space-y-6">
+                <!-- Name Input -->
+                <div class="text-left">
+                    <label for="studentName" class="block text-slate-800 font-extrabold mb-2 text-lg">
+                        <i class="fa-solid fa-user-astronaut text-ocean-mid mr-2"></i>What is your name?
+                    </label>
+                    <input type="text" id="studentName" required placeholder="Type your name here..."
+                        class="w-full px-5 py-4 text-xl rounded-2xl border-4 border-ocean-shallow focus:border-ocean-mid focus:outline-none transition-all shadow-inner text-slate-900 font-extrabold placeholder-slate-400">
+                </div>
 
-            <h3 className="font-extrabold text-slate-700 text-sm mb-4 uppercase tracking-wider">
-              Select CEFR Reading Level:
-            </h3>
+                <!-- Level Choice Cards -->
+                <div class="text-left">
+                    <label class="block text-slate-800 font-extrabold mb-2 text-lg">
+                        <i class="fa-solid fa-compass text-coral mr-2"></i>Choose Reading Level:
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <label class="level-card cursor-pointer relative">
+                            <input type="radio" name="levelSelect" value="A1" checked class="peer sr-only">
+                            <div class="p-4 rounded-2xl border-4 border-slate-300 peer-checked:border-ocean-mid peer-checked:bg-cyan-50 peer-checked:shadow-lg transition-all flex flex-col items-center text-center">
+                                <span class="text-3xl mb-1">🐬</span>
+                                <span class="font-black text-ocean-dark text-lg">Level 1</span>
+                                <span class="text-sm font-bold text-slate-600">Beginner (A1)</span>
+                                <span class="text-xs text-slate-500 font-semibold mt-1">"The Playful Dolphin"</span>
+                            </div>
+                        </label>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => handleStartAssessment('A1')}
-                className="p-6 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-500 hover:from-cyan-500 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all cursor-pointer border-4 border-white/50 flex flex-col items-center gap-2 group transform hover:-translate-y-1"
-              >
-                <span className="text-5xl group-hover:scale-110 transition-transform">🐬</span>
-                <span className="font-black text-2xl">Level 1 (A1)</span>
-                <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full">
-                  Short & Simple • Word-by-Word
-                </span>
-                <span className="text-xs font-medium opacity-90 mt-1">The Playful Dolphin</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleStartAssessment('A2')}
-                className="p-6 rounded-3xl bg-gradient-to-br from-emerald-400 to-teal-600 hover:from-emerald-500 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all cursor-pointer border-4 border-white/50 flex flex-col items-center gap-2 group transform hover:-translate-y-1"
-              >
-                <span className="text-5xl group-hover:scale-110 transition-transform">🐢</span>
-                <span className="font-black text-2xl">Level 2 (A2)</span>
-                <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full">
-                  Connected Sentences & Connectors
-                </span>
-                <span className="text-xs font-medium opacity-90 mt-1">The Journey of Sea Turtles</span>
-              </button>
-            </div>
-
-          </div>
-        </main>
-      )}
-
-      {/* SCREEN 2: ASSESSMENT */}
-      {currentScreen === 'assessment' && currentLevelData && (
-        <main className="relative z-10 max-w-6xl mx-auto px-4 py-4 w-full flex-1 flex flex-col gap-4">
-          
-          {/* Progress Header Map */}
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-lg border-2 border-sky-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-extrabold text-sky-950 text-sm flex items-center gap-2">
-                <Compass className="w-4 h-4 text-amber-500" />
-                {currentLevelData.levelTitle}
-              </span>
-              <span className="font-black text-sky-800 text-xs bg-sky-100 px-3 py-1 rounded-full border border-sky-200">
-                Question {currentQuestionIdx + 1} of {totalQuestions}
-              </span>
-            </div>
-
-            <div className="relative w-full h-8 bg-sky-200/80 rounded-full overflow-visible border-2 border-sky-300 flex items-center px-1">
-              <div 
-                className="h-4 bg-gradient-to-r from-amber-400 to-yellow-300 rounded-full transition-all duration-500 shadow-inner"
-                style={{ width: `${((currentQuestionIdx + 1) / totalQuestions) * 100}%` }}
-              ></div>
-              <div 
-                className="absolute top-1/2 -translate-y-1/2 transition-all duration-500 z-10 drop-shadow-md"
-                style={{ left: `calc(${((currentQuestionIdx + 1) / totalQuestions) * 100}% - 28px)` }}
-              >
-                <SubmarineIcon className="w-10 h-10 animate-bounce-slow" />
-              </div>
-            </div>
-          </div>
-
-          {/* Passage & Question Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
-            
-            {/* Passage Panel */}
-            <div className="lg:col-span-6 bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-xl border-4 border-sky-100 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between border-b pb-3 mb-3 border-slate-200">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-3xl">{currentLevelData.avatar}</span>
-                      <h2 className="text-2xl font-black text-sky-950">
-                        {currentLevelData.passageTitle}
-                      </h2>
+                        <label class="level-card cursor-pointer relative">
+                            <input type="radio" name="levelSelect" value="A2" class="peer sr-only">
+                            <div class="p-4 rounded-2xl border-4 border-slate-300 peer-checked:border-coral peer-checked:bg-rose-50 peer-checked:shadow-lg transition-all flex flex-col items-center text-center">
+                                <span class="text-3xl mb-1">🐢</span>
+                                <span class="font-black text-coral-dark text-lg">Level 2</span>
+                                <span class="text-sm font-bold text-slate-600">Elementary (A2)</span>
+                                <span class="text-xs text-slate-500 font-semibold mt-1">"Journey of Sea Turtles"</span>
+                            </div>
+                        </label>
                     </div>
-                    <span className="text-xs font-extrabold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200 inline-block mt-1">
-                      {currentLevelData.cefrBadge}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isPlayingAudio) {
-                        stopAudio();
-                      } else {
-                        const fullPassageText = currentLevelData.passageParagraphs
-                          .map(p => p.text.replace(/\{(\w+)\}/g, '$1'))
-                          .join(' ');
-                        speakText(fullPassageText);
-                      }
-                    }}
-                    className={`px-3.5 py-2 rounded-xl font-black text-sm flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                      isPlayingAudio
-                        ? 'bg-amber-500 text-white animate-pulse'
-                        : 'bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200'
-                    }`}
-                  >
-                    {isPlayingAudio ? <Pause className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-sky-600" />}
-                    <span>{isPlayingAudio ? 'Stop' : 'Read Aloud'}</span>
-                  </button>
                 </div>
 
-                {/* CEFR Reading Tip */}
-                <div className="mb-4 bg-amber-50 border-l-4 border-amber-400 p-2.5 rounded-r-xl text-xs font-bold text-amber-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>{currentLevelData.readingTip}</span>
+                <!-- Submit Button -->
+                <button type="submit" onclick="playClickSound()"
+                    class="w-full bg-gradient-to-r from-coral to-coral-dark hover:from-coral-dark hover:to-red-600 text-white font-extrabold text-2xl py-4 px-8 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-3 group pulse-glow">
+                    <span>Start Quest!</span>
+                    <i class="fa-solid fa-arrow-right group-hover:translate-x-2 transition-transform"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- 2. ASSESSMENT SCREEN -->
+        <!-- ================================================================= -->
+        <div id="assessmentScreen" class="w-full hidden space-y-6 my-auto">
+
+            <!-- Header Progress Bar & Submarine Marker -->
+            <div class="bg-ocean-deep/90 backdrop-blur-md rounded-2xl p-4 md:p-5 border-2 border-ocean-shallow/40 shadow-xl text-white">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-3 gap-2">
+                    <div class="flex items-center gap-3">
+                        <span class="bg-sand text-ocean-deep text-sm font-black px-3 py-1 rounded-full shadow border border-amber-400" id="learnerBadge">
+                            Explorer
+                        </span>
+                        <span class="font-extrabold text-lg md:text-xl text-ocean-foam" id="displayStudentName">Explorer</span>
+                    </div>
+
+                    <div class="flex items-center gap-4 text-sm md:text-base font-extrabold">
+                        <div class="bg-ocean-mid/80 px-3.5 py-1.5 rounded-xl border border-cyan-300/40 flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-star text-sand text-lg"></i>
+                            <span>Score: <span id="currentScore" class="text-sand font-black text-xl">0</span> pts</span>
+                        </div>
+                        <div class="bg-ocean-mid/80 px-3.5 py-1.5 rounded-xl border border-cyan-300/40 flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-layer-group text-ocean-shallow"></i>
+                            <span id="questionStepIndicator">Question 1/5</span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Story Paragraphs */}
-                <div className="space-y-4">
-                  {currentLevelData.passageParagraphs.map((paragraph, idx) => (
-                    <InteractivePassageText
-                      key={idx}
-                      paragraph={paragraph}
-                      onSpeakWord={(word) => speakText(word, true)}
-                    />
-                  ))}
-                </div>
-              </div>
+                <!-- Submarine Map Progress Track -->
+                <div class="relative pt-6 pb-2 px-2">
+                    <div class="w-full bg-ocean-dark/80 h-4 rounded-full overflow-hidden border border-cyan-400/40 relative shadow-inner">
+                        <div id="progressBar" class="bg-gradient-to-r from-ocean-shallow via-cyan-300 to-sand h-full w-0 transition-all duration-700 rounded-full"></div>
+                    </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between font-bold">
-                <span>💡 Tap highlighted yellow words to see pictures & definitions!</span>
-              </div>
+                    <!-- Animated Submarine Marker Icon -->
+                    <div id="submarineMarker" class="absolute top-0 left-0 transition-all duration-700 -ml-5 pointer-events-none" style="left: 0%;">
+                        <div class="relative flex flex-col items-center">
+                            <svg class="w-10 h-10 text-sand drop-shadow-md" viewBox="0 0 64 64" fill="currentColor">
+                                <path d="M52,24 C52,15.2 41.3,8 28,8 C14.7,8 4,15.2 4,24 C4,32.8 14.7,40 28,40 C41.3,40 52,32.8 52,24 Z" fill="#ffd166"/>
+                                <circle cx="20" cy="24" r="4" fill="#023e8a"/>
+                                <circle cx="32" cy="24" r="4" fill="#023e8a"/>
+                                <path d="M28,8 L28,2 L36,2 L36,8 Z" fill="#fdcb6e"/>
+                                <circle cx="58" cy="24" r="5" fill="#ee5253" class="sub-propeller"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Question Panel */}
-            <div className="lg:col-span-6 bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-xl border-4 border-sky-100 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-extrabold text-xs uppercase tracking-wider text-sky-700 bg-sky-100 px-3 py-1 rounded-full border border-sky-200">
-                    Question {currentQuestionIdx + 1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (currentQuestion) {
-                        speakText(currentQuestion.prompt);
-                      }
-                    }}
-                    className="text-xs font-bold text-sky-800 hover:text-sky-950 flex items-center gap-1 bg-sky-100 px-2.5 py-1 rounded-lg border border-sky-200 cursor-pointer"
-                  >
-                    <Volume2 className="w-3.5 h-3.5 text-sky-600" /> Read Question
-                  </button>
-                </div>
+            <!-- Reading Passage Block -->
+            <div class="ocean-card p-5 md:p-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-2 border-slate-200 pb-4 mb-4 gap-3">
+                    <div>
+                        <span id="passageLevelTag" class="text-xs font-black uppercase tracking-widest text-ocean-mid bg-cyan-100 px-3 py-1 rounded-md border border-cyan-200">
+                            Level Passage
+                        </span>
+                        <h2 id="passageTitle" class="text-2xl md:text-3xl font-black text-ocean-dark mt-1">
+                            Passage Title
+                        </h2>
+                    </div>
 
-                {currentQuestion?.subtitle && (
-                  <p className="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-1">
-                    {currentQuestion.subtitle}
-                  </p>
-                )}
-
-                <h3 className="text-2xl font-black text-slate-900 mb-4 leading-tight">
-                  {currentQuestion?.prompt}
-                </h3>
-
-                {/* Render Question Cards based on Type */}
-                {currentQuestion?.type === 'multiple_choice_image' && (
-                  <ImageMultipleChoiceQuestion
-                    question={currentQuestion}
-                    selectedOption={userAnswers[currentQuestion.id]}
-                    onSelect={(optId) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: optId }))}
-                  />
-                )}
-
-                {currentQuestion?.type === 'true_false' && (
-                  <TrueFalseQuestion
-                    selectedValue={userAnswers[currentQuestion.id]}
-                    onSelect={(val) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: val }))}
-                  />
-                )}
-
-                {currentQuestion?.type === 'matching' && (
-                  <MatchingQuestion
-                    pairs={currentQuestion.pairs}
-                    matches={matchingPairs[currentQuestion.id] || {}}
-                    onMatchPair={(wordId, targetId) => {
-                      setMatchingPairs(prev => ({
-                        ...prev,
-                        [currentQuestion.id]: {
-                          ...(prev[currentQuestion.id] || {}),
-                          [wordId]: targetId
-                        }
-                      }));
-                    }}
-                  />
-                )}
-
-                {currentQuestion?.type === 'sequence' && (
-                  <SequenceOrderingQuestion
-                    currentOrder={sequenceOrders[currentQuestion.id] || currentQuestion.items}
-                    onMoveUp={handleMoveSequenceUp}
-                    onMoveDown={handleMoveSequenceDown}
-                  />
-                )}
-
-                {(currentQuestion?.type === 'multiple_choice_text' || currentQuestion?.type === 'context_vocabulary') && (
-                  <TextMultipleChoiceQuestion
-                    question={currentQuestion}
-                    selectedOption={userAnswers[currentQuestion.id]}
-                    onSelect={(optId) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: optId }))}
-                  />
-                )}
-              </div>
-
-              {/* Feedback & Navigation Actions */}
-              <div className="mt-6 pt-4 border-t border-slate-200">
-                {feedback && (
-                  <div className={`p-4 rounded-2xl mb-4 font-black text-lg flex items-center gap-3 ${
-                    feedback.isCorrect 
-                      ? 'bg-emerald-100 text-emerald-950 border-2 border-emerald-400' 
-                      : 'bg-amber-100 text-amber-950 border-2 border-amber-400'
-                  }`}>
-                    {feedback.isCorrect ? (
-                      <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
-                    ) : (
-                      <HelpCircle className="w-8 h-8 text-amber-600 shrink-0" />
-                    )}
-                    <span>{feedback.message}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (currentQuestionIdx > 0) {
-                        setCurrentQuestionIdx(prev => prev - 1);
-                        setFeedback(null);
-                      }
-                    }}
-                    disabled={currentQuestionIdx === 0}
-                    className="px-4 py-3 rounded-xl font-black bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 transition-all cursor-pointer"
-                  >
-                    Back
-                  </button>
-
-                  {!feedback?.isCorrect ? (
-                    <button
-                      type="button"
-                      onClick={handleCheckAnswer}
-                      className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-amber-950 font-black text-xl shadow-lg hover:shadow-xl transition-all cursor-pointer border-b-4 border-amber-600 flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle2 className="w-6 h-6" /> Check Answer
+                    <!-- Audio Read-Aloud Button -->
+                    <button id="btnReadAloud" onclick="togglePassageSpeech()"
+                        class="bg-ocean-mid hover:bg-ocean-dark text-white font-extrabold py-2.5 px-5 rounded-2xl shadow-md flex items-center gap-2 transition-all active:scale-95 text-base border-2 border-cyan-300/40">
+                        <i id="readAloudIcon" class="fa-solid fa-volume-high text-lg"></i>
+                        <span id="readAloudText">Listen Passage</span>
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleNextQuestion}
-                      className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xl shadow-lg hover:shadow-xl transition-all cursor-pointer border-b-4 border-emerald-700 flex items-center justify-center gap-2"
-                    >
-                      <span>{currentQuestionIdx + 1 < totalQuestions ? 'Next Question' : 'See Results'}</span>
-                      <ArrowRight className="w-6 h-6" />
+                </div>
+
+                <!-- Text Content Container -->
+                <div id="passageContent" class="text-slate-900 text-lg md:text-2xl leading-relaxed space-y-4 font-normal">
+                    <!-- Text injected via JS -->
+                </div>
+
+                <!-- High-Contrast Vocab Tip Banner -->
+                <div class="mt-5 p-3.5 bg-amber-100 border-2 border-amber-400 rounded-xl text-sm md:text-base text-amber-950 font-bold flex items-center gap-3 shadow-sm">
+                    <i class="fa-solid fa-volume-high text-amber-700 text-xl flex-shrink-0"></i>
+                    <span><strong>Audio Tip:</strong> Tap or click any <span class="bg-amber-300 text-black px-2 py-0.5 rounded-lg border border-amber-600 font-extrabold">Yellow Word</span> to play its audio sound and see details!</span>
+                </div>
+            </div>
+
+            <!-- Interactive Question Container -->
+            <div id="questionContainer" class="ocean-card p-5 md:p-8 relative">
+                <!-- Injected Questions HTML -->
+            </div>
+
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- 3. RESULTS / CELEBRATION SCREEN -->
+        <!-- ================================================================= -->
+        <div id="resultsScreen" class="w-full ocean-card p-6 md:p-10 text-center hidden my-auto relative overflow-hidden">
+            <!-- Confetti Canvas -->
+            <canvas id="confettiCanvas" class="absolute inset-0 pointer-events-none z-0 w-full h-full"></canvas>
+
+            <div class="relative z-10 space-y-6">
+                <div class="inline-block animate-bounce">
+                    <span class="text-7xl md:text-9xl">🐬</span>
+                </div>
+
+                <h1 class="text-3xl md:text-5xl font-black text-ocean-dark">
+                    Fantastic Job, <span id="resultStudentName" class="text-coral">Explorer</span>!
+                </h1>
+
+                <p class="text-slate-700 text-lg md:text-xl font-bold max-w-xl mx-auto">
+                    You completed your English reading assessment and mastered marine vocabulary!
+                </p>
+
+                <!-- Stars Display -->
+                <div id="starRating" class="flex justify-center items-center gap-3 text-4xl md:text-6xl text-sand py-2">
+                    <i class="fa-solid fa-star drop-shadow-md animate-pulse"></i>
+                    <i class="fa-solid fa-star drop-shadow-md animate-pulse delay-100"></i>
+                    <i class="fa-solid fa-star drop-shadow-md animate-pulse delay-200"></i>
+                </div>
+
+                <!-- Detailed Score Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                    <div class="bg-cyan-50 border-2 border-cyan-300 rounded-2xl p-4 shadow-sm">
+                        <span class="block text-slate-600 text-xs font-black uppercase">Total Score</span>
+                        <span id="finalScore" class="text-3xl md:text-4xl font-black text-ocean-dark">500</span>
+                        <span class="text-xs text-slate-500 font-bold block mt-1">points earned</span>
+                    </div>
+
+                    <div class="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 shadow-sm">
+                        <span class="block text-slate-600 text-xs font-black uppercase">Accuracy</span>
+                        <span id="accuracyPercent" class="text-3xl md:text-4xl font-black text-coral">100%</span>
+                        <span class="text-xs text-slate-500 font-bold block mt-1">correct score</span>
+                    </div>
+
+                    <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 shadow-sm">
+                        <span class="block text-slate-600 text-xs font-black uppercase">Questions</span>
+                        <span id="correctRatio" class="text-3xl md:text-4xl font-black text-amber-600">5/5</span>
+                        <span class="text-xs text-slate-500 font-bold block mt-1">correct answers</span>
+                    </div>
+                </div>
+
+                <!-- Unlocked Badges Section -->
+                <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 max-w-xl mx-auto">
+                    <h3 class="font-extrabold text-slate-800 text-sm uppercase tracking-wider mb-3">
+                        <i class="fa-solid fa-award text-amber-500 mr-2"></i>Badges Unlocked:
+                    </h3>
+                    <div id="badgesContainer" class="flex flex-wrap justify-center gap-3">
+                        <!-- Badges injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="flex flex-col sm:flex-row justify-center gap-4 pt-4 max-w-md mx-auto">
+                    <button onclick="restartSameLevel()"
+                        class="w-full sm:w-auto flex-1 bg-ocean-mid hover:bg-ocean-dark text-white font-extrabold py-3.5 px-6 rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-lg">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>Play Again</span>
                     </button>
-                  )}
+
+                    <button onclick="showWelcomeScreen()"
+                        class="w-full sm:w-auto flex-1 bg-coral hover:bg-coral-dark text-white font-extrabold py-3.5 px-6 rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-lg">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>Switch Level</span>
+                    </button>
                 </div>
-              </div>
-
             </div>
-
-          </div>
-
-        </main>
-      )}
-
-      {/* SCREEN 3: RESULTS */}
-      {currentScreen === 'results' && (
-        <main className="relative z-10 max-w-3xl mx-auto px-4 py-8 flex-1 flex flex-col justify-center items-center text-center">
-          <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 sm:p-10 shadow-2xl border-4 border-amber-300 w-full">
-            
-            <div className="text-6xl mb-2 animate-bounce">🏆</div>
-
-            {/* Student Name & Level Banner */}
-            <div className="bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-2xl p-4 mb-6 shadow-md border-2 border-white/40">
-              <span className="text-xs font-black uppercase tracking-widest text-sky-200 block mb-1">
-                Reading Assessment Certificate
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-black mb-1">
-                {studentName ? studentName : 'Super Reader'}
-              </h2>
-              <p className="text-sm font-bold text-sky-100">
-                Completed: {currentLevelData.levelTitle}
-              </p>
-            </div>
-
-            {/* Star Rating Display */}
-            <div className="flex justify-center gap-3 mb-6">
-              {[1, 2, 3].map((starIndex) => {
-                const isEarned = (percentage >= 33 && starIndex === 1) ||
-                                 (percentage >= 66 && starIndex === 2) ||
-                                 (percentage >= 100 && starIndex === 3);
-                return (
-                  <div 
-                    key={starIndex}
-                    className={`p-3 rounded-full border-4 transition-transform ${
-                      isEarned 
-                        ? 'bg-amber-100 border-amber-400 text-amber-500 scale-110 shadow-lg animate-pulse' 
-                        : 'bg-slate-100 border-slate-300 text-slate-300'
-                    }`}
-                  >
-                    <Star className="w-10 h-10 sm:w-12 sm:h-12 fill-current" />
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Score Box */}
-            <div className="bg-sky-50 border-[3px] border-sky-200 rounded-2xl p-5 mb-6 max-w-md mx-auto shadow-inner">
-              <div className="text-xs font-black text-sky-800 uppercase tracking-wider mb-1">
-                Final Score
-              </div>
-              <div className="text-5xl font-black text-sky-950 mb-1">
-                {score} / {totalQuestions}
-              </div>
-              <div className="text-lg font-black text-amber-600 mb-2">
-                {percentage}% Correct
-              </div>
-              <p className="text-sm font-extrabold text-slate-700">
-                {percentage === 100 
-                  ? '🌟 Perfect Score! Excellent reading comprehension!' 
-                  : percentage >= 60 
-                  ? '🎉 Great job! You understand the main ideas well!' 
-                  : '🌊 Good effort! Try again to get all 3 stars!'}
-              </p>
-            </div>
-
-            {/* Badges Unlocked */}
-            <div className="mb-6">
-              <h3 className="font-extrabold text-slate-700 text-xs uppercase tracking-wider mb-3">
-                Badges Earned:
-              </h3>
-              <div className="flex flex-wrap justify-center gap-3">
-                <div className="bg-amber-100 border-2 border-amber-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-amber-950 font-bold shadow-sm">
-                  <Award className="w-5 h-5 text-amber-600" /> Ocean Explorer
-                </div>
-                {selectedLevelId === 'A1' && (
-                  <div className="bg-cyan-100 border-2 border-cyan-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-cyan-950 font-bold shadow-sm">
-                    🐬 Word Star (A1)
-                  </div>
-                )}
-                {selectedLevelId === 'A2' && (
-                  <div className="bg-emerald-100 border-2 border-emerald-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-emerald-950 font-bold shadow-sm">
-                    🐢 Sentence Master (A2)
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                type="button"
-                onClick={() => handleStartAssessment(selectedLevelId)}
-                className="py-3.5 px-6 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-black text-lg shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <RotateCcw className="w-5 h-5" /> Try Level Again
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  playSoundEffect('pop');
-                  setCurrentScreen('welcome');
-                }}
-                className="py-3.5 px-6 rounded-2xl bg-amber-400 hover:bg-amber-500 text-amber-950 font-black text-lg shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Compass className="w-5 h-5" /> Choose Level
-              </button>
-            </div>
-
-          </div>
-        </main>
-      )}
-
-      <footer className="relative z-10 text-center py-3 text-sky-100 text-xs font-medium">
-        Ocean Reading Quest • CEFR Reading Assessment for 10-Year-Old Learners
-      </footer>
+        </div>
 
     </div>
-  );
-}
+
+    <!-- VOCABULARY POPUP MODAL -->
+    <div id="vocabModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden transition-opacity">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full border-4 border-ocean-shallow shadow-2xl text-center space-y-4 relative animate-scaleUp">
+            <button onclick="closeVocabModal()" class="absolute top-3 right-3 text-slate-500 hover:text-slate-800 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-xl">
+                ✕
+            </button>
+
+            <!-- Icon Display -->
+            <div id="vocabModalIcon" class="w-28 h-28 mx-auto bg-cyan-50 rounded-2xl flex items-center justify-center text-6xl shadow-inner border-2 border-cyan-200">
+                🐬
+            </div>
+
+            <div>
+                <h3 id="vocabModalWord" class="text-3xl font-black text-ocean-dark capitalize">Word</h3>
+                <span id="vocabModalPhonetic" class="text-base font-bold text-ocean-mid italic block mb-2">/word/</span>
+                <p id="vocabModalDefinition" class="text-slate-700 text-base font-bold">Simple definition goes here.</p>
+            </div>
+
+            <button id="vocabListenBtn" onclick="speakVocabModalWord()"
+                class="w-full bg-sand hover:bg-amber-400 text-ocean-deep font-black py-3.5 px-4 rounded-xl shadow transition-all flex items-center justify-center gap-2 text-lg border-2 border-amber-500">
+                <i class="fa-solid fa-volume-high text-xl"></i>
+                <span>Hear Pronunciation</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer Tagline -->
+    <footer class="relative z-10 text-center py-4 text-xs font-bold text-ocean-foam/90">
+        Ocean Reading Quest &copy; 2026 • Designed for Young English Language Learners (A1/A2)
+    </footer>
+
+    <script>
+        /* ================================================================= */
+        /* EXPANDED ASSESSMENT DATA CONTENT (A1 & A2 with 5 Questions Each)  */
+        /* ================================================================= */
+        const CONTENT_DATA = {
+            A1: {
+                levelTitle: "Level 1: Beginner (A1)",
+                passageTitle: "The Playful Dolphin",
+                passageHtml: `
+                    <p>
+                        Dolphins are smart animals that live in the warm 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'ocean')" title="Listen to 'ocean'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> ocean
+                        </span>. 
+                        Although they swim in water like fish, dolphins are actually mammals! They need to breathe 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'air')" title="Listen to 'air'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> air
+                        </span> through a hole on top of their heads.
+                    </p>
+                    <p>
+                        A playful 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'dolphin')" title="Listen to 'dolphin'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> dolphin
+                        </span> loves to 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'jump')" title="Listen to 'jump'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> jump
+                        </span> high out of the sea and play games. They eat small fish and yummy 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'squid')" title="Listen to 'squid'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> squid
+                        </span>. Dolphins talk to each other using friendly clicks and whistles!
+                    </p>
+                `,
+                plainText: "Dolphins are smart animals that live in the warm ocean. Although they swim in water like fish, dolphins are actually mammals! They need to breathe air through a hole on top of their heads. A playful dolphin loves to jump high out of the sea and play games. They eat small fish and yummy squid. Dolphins talk to each other using friendly clicks and whistles!",
+                vocabulary: {
+                    ocean: { word: "ocean", icon: "🌊", phonetic: "/ˈoʊ.ʃən/", def: "A huge body of salt water that covers most of Earth.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/ocean-us.mp3" },
+                    air: { word: "air", icon: "💨", phonetic: "/ɛər/", def: "The invisible gas we breathe to stay alive.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/air-us.mp3" },
+                    dolphin: { word: "dolphin", icon: "🐬", phonetic: "/ˈdɒl.fɪn/", def: "A friendly, clever sea mammal that swims fast.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/dolphin-us.mp3" },
+                    jump: { word: "jump", icon: "🦘", phonetic: "/dʒʌmp/", def: "To push yourself high up into the air.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/jump-us.mp3" },
+                    squid: { word: "squid", icon: "🦑", phonetic: "/skwɪd/", def: "A sea animal with long arms and a soft body.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/squid-us.mp3" }
+                },
+                questions: [
+                    {
+                        id: 'a1_q1',
+                        type: 'mc_image',
+                        prompt: "Question 1: Where do dolphins live?",
+                        options: [
+                            { text: "In trees", icon: "🌳", correct: false },
+                            { text: "In the ocean", icon: "🌊", correct: true },
+                            { text: "In the desert", icon: "🏜️", correct: false }
+                        ],
+                        explanation: "Great job! Dolphins live in the warm ocean."
+                    },
+                    {
+                        id: 'a1_q2',
+                        type: 'true_false',
+                        prompt: "Question 2: True or False? Dolphins are fish.",
+                        correctAnswer: false,
+                        explanation: "That's right! Dolphins look like fish, but they are actually mammals!"
+                    },
+                    {
+                        id: 'a1_q3',
+                        type: 'matching',
+                        prompt: "Question 3: Match each word to its correct meaning:",
+                        pairs: [
+                            { word: "Air", match: "What dolphins breathe" },
+                            { word: "Squid", match: "Yummy food for dolphins" },
+                            { word: "Jump", match: "Play high out of water" }
+                        ],
+                        explanation: "Super matching! You know your dolphin vocabulary!"
+                    },
+                    {
+                        id: 'a1_q4',
+                        type: 'mc_image',
+                        prompt: "Question 4: How do dolphins talk to each other?",
+                        options: [
+                            { text: "By ringing bells", icon: "🔔", correct: false },
+                            { text: "With clicks and whistles", icon: "🎶", correct: true },
+                            { text: "By writing letters", icon: "✉️", correct: false }
+                        ],
+                        explanation: "Awesome! Dolphins talk using clicks and whistles."
+                    },
+                    {
+                        id: 'a1_q5',
+                        type: 'mc_image',
+                        prompt: "Question 5: What do dolphins eat besides small fish?",
+                        options: [
+                            { text: "Tasty squid", icon: "🦑", correct: true },
+                            { text: "Apples & bananas", icon: "🍎", correct: false },
+                            { text: "Pizza slices", icon: "🍕", correct: false }
+                        ],
+                        explanation: "Spot on! Dolphins love to eat yummy squid!"
+                    }
+                ]
+            },
+            A2: {
+                levelTitle: "Level 2: Elementary (A2)",
+                passageTitle: "The Journey of Sea Turtles",
+                passageHtml: `
+                    <p>
+                        Sea turtles go on an amazing 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'journey')" title="Listen to 'journey'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> journey
+                        </span> across the world. 
+                        Every year, mother turtles swim back to the sandy beach where they were born to lay their eggs.
+                    </p>
+                    <p>
+                        When tiny baby turtles 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'hatch')" title="Listen to 'hatch'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> hatch
+                        </span> from their eggs at night, they crawl bravely toward the shiny ocean waves. A hard 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'shell')" title="Listen to 'shell'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> shell
+                        </span> 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'protects')" title="Listen to 'protects'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> protects
+                        </span> them from dangers.
+                    </p>
+                    <p>
+                        However, sea turtles face problems today. Floating 
+                        <span class="vocab-word" onclick="playVocabAudio(event, 'plastic')" title="Listen to 'plastic'">
+                            <span class="vocab-speaker-icon"><i class="fa-solid fa-volume-high"></i></span> plastic
+                        </span> bags look like tasty jellyfish to turtles. Keeping our oceans clean helps these wonderful creatures survive!
+                    </p>
+                `,
+                plainText: "Sea turtles go on an amazing journey across the world. Every year, mother turtles swim back to the sandy beach where they were born to lay their eggs. When tiny baby turtles hatch from their eggs at night, they crawl bravely toward the shiny ocean waves. A hard shell protects them from dangers. However, sea turtles face problems today. Floating plastic bags look like tasty jellyfish to turtles. Keeping our oceans clean helps these wonderful creatures survive!",
+                vocabulary: {
+                    journey: { word: "journey", icon: "🗺️", phonetic: "/ˈdʒɜː.ni/", def: "A long trip from one place to another.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/journey-us.mp3" },
+                    hatch: { word: "hatch", icon: "🐣", phonetic: "/hætʃ/", def: "To break out of an egg when born.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/hatch-us.mp3" },
+                    shell: { word: "shell", icon: "🐢", phonetic: "/ʃɛl/", def: "The hard outer cover that shields an animal.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/shell-us.mp3" },
+                    protects: { word: "protects", icon: "🛡️", phonetic: "/prəˈtɛkts/", def: "Keeps someone safe from harm or danger.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/protect-us.mp3" },
+                    plastic: { word: "plastic", icon: "🛍️", phonetic: "/ˈplæs.tɪk/", def: "A man-made material that can harm sea life.", audioSrc: "https://api.dictionaryapi.dev/media/pronunciations/en/plastic-us.mp3" }
+                },
+                questions: [
+                    {
+                        id: 'a2_q1',
+                        type: 'mc_context',
+                        prompt: "Question 1: Why is floating plastic dangerous for sea turtles?",
+                        options: [
+                            { text: "Turtles use plastic to build nests.", correct: false },
+                            { text: "Plastic looks like jellyfish and turtles eat it by mistake.", correct: true },
+                            { text: "Plastic makes the ocean water too cold.", correct: false }
+                        ],
+                        explanation: "Correct! Plastic bags look like jellyfish, so turtles eat them by accident."
+                    },
+                    {
+                        id: 'a2_q2',
+                        type: 'sequence',
+                        prompt: "Question 2: Put the steps of a sea turtle's journey in order:",
+                        steps: [
+                            "1. Mother turtle swims to the sandy beach and lays eggs.",
+                            "2. Tiny baby turtles hatch from their eggs at night.",
+                            "3. Hatchlings crawl toward the shiny ocean waves.",
+                            "4. Sea turtles swim across the world."
+                        ],
+                        explanation: "Fantastic ordering! You understood the sea turtle life cycle!"
+                    },
+                    {
+                        id: 'a2_q3',
+                        type: 'context_clues',
+                        prompt: "Question 3: In paragraph 2, what does the word 'protects' mean?",
+                        options: [
+                            { text: "Keeps safe from harm", correct: true },
+                            { text: "Makes loud sounds", correct: false },
+                            { text: "Swims very fast", correct: false }
+                        ],
+                        explanation: "Spot on! 'Protects' means to keep safe from danger."
+                    },
+                    {
+                        id: 'a2_q4',
+                        type: 'mc_context',
+                        prompt: "Question 4: Where do mother turtles lay their eggs?",
+                        options: [
+                            { text: "On the sandy beach where they were born.", correct: true },
+                            { text: "On top of high icebergs.", correct: false },
+                            { text: "Inside underwater caves.", correct: false }
+                        ],
+                        explanation: "Great job! Mother turtles always swim back to the beach where they were born."
+                    },
+                    {
+                        id: 'a2_q5',
+                        type: 'true_false',
+                        prompt: "Question 5: True or False? Baby turtles hatch from their eggs during the day.",
+                        correctAnswer: false,
+                        explanation: "Correct! Baby turtles hatch at night so they can safely crawl to the ocean!"
+                    }
+                ]
+            }
+        };
+
+        /* APPLICATION STATE */
+        let state = {
+            studentName: '',
+            level: 'A1',
+            currentQuestionIndex: 0,
+            score: 0,
+            answers: [],
+            isSpeaking: false,
+            speechUtterance: null,
+            currentModalWord: null
+        };
+
+        /* ================================================================= */
+        /* WEB AUDIO SYNTHESIZER (Browser Compatible Sound Effects)           */
+        /* ================================================================= */
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioCtx();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playClickSound() {
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(850, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } catch(e){}
+        }
+
+        function playCorrectSound() {
+            try {
+                initAudio();
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
+                    gain.gain.setValueAtTime(0.25, audioCtx.currentTime + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.08 + 0.22);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + idx * 0.08);
+                    osc.stop(audioCtx.currentTime + idx * 0.08 + 0.22);
+                });
+            } catch(e){}
+        }
+
+        function playIncorrectSound() {
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(240, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(170, audioCtx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.25);
+            } catch(e){}
+        }
+
+        function playFanfareSound() {
+            try {
+                initAudio();
+                const notes = [440, 554.37, 659.25, 880, 1108.73, 1318.51];
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.07);
+                    gain.gain.setValueAtTime(0.25, audioCtx.currentTime + idx * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.07 + 0.45);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + idx * 0.07);
+                    osc.stop(audioCtx.currentTime + idx * 0.07 + 0.45);
+                });
+            } catch(e){}
+        }
+
+        /* ================================================================= */
+        /* AUDIO & SPEECH PLAYBACK ENGINE (HTML5 <audio> + SPEECH SYNTHESIS)  */
+        /* ================================================================= */
+        function updateReadAloudUI(isSpeaking) {
+            const btn = document.getElementById('btnReadAloud');
+            const icon = document.getElementById('readAloudIcon');
+            const text = document.getElementById('readAloudText');
+            if (!btn || !icon || !text) return;
+
+            if (isSpeaking) {
+                btn.classList.add('bg-coral', 'animate-pulse');
+                btn.classList.remove('bg-ocean-mid');
+                icon.className = 'fa-solid fa-square text-lg';
+                text.textContent = 'Stop Reading';
+            } else {
+                btn.classList.remove('bg-coral', 'animate-pulse');
+                btn.classList.add('bg-ocean-mid');
+                icon.className = 'fa-solid fa-volume-high text-lg';
+                text.textContent = 'Listen Passage';
+            }
+        }
+
+        function togglePassageSpeech() {
+            playClickSound();
+            if (state.isSpeaking) {
+                stopSpeech();
+            } else {
+                const data = CONTENT_DATA[state.level];
+                if (data && data.plainText) {
+                    speakText(data.plainText);
+                }
+            }
+        }
+
+        function speakText(text, onEndCallback = null) {
+            if (!('speechSynthesis' in window)) return;
+
+            window.speechSynthesis.cancel(); // Stop current speech
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.85; // Natural speed for young learners
+            utterance.pitch = 1.05;
+            utterance.lang = 'en-US';
+
+            utterance.onend = () => {
+                state.isSpeaking = false;
+                updateReadAloudUI(false);
+                if (onEndCallback) onEndCallback();
+            };
+
+            utterance.onerror = () => {
+                state.isSpeaking = false;
+                updateReadAloudUI(false);
+            };
+
+            state.isSpeaking = true;
+            state.speechUtterance = utterance;
+            updateReadAloudUI(true);
+
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function stopSpeech() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            state.isSpeaking = false;
+            updateReadAloudUI(false);
+        }
+
+        /* ================================================================= */
+        /* DIRECT VOCAB AUDIO PLAYBACK ENGINE WITH DUAL HTML5 / SYNTH FALLBACK */
+        /* ================================================================= */
+        function playVocabAudio(event, key) {
+            if (event) event.stopPropagation();
+            playClickSound();
+
+            const targetElement = event ? event.currentTarget : null;
+            if (targetElement) {
+                targetElement.classList.add('playing-audio');
+                setTimeout(() => targetElement.classList.remove('playing-audio'), 1200);
+            }
+
+            const vocabData = CONTENT_DATA[state.level]?.vocabulary[key];
+            const word = vocabData ? vocabData.word : key;
+            const audioId = `audio-${key}`;
+            let audioElement = document.getElementById(audioId);
+
+            // Dynamically create audio element if not present in preload container
+            if (!audioElement && vocabData && vocabData.audioSrc) {
+                audioElement = document.createElement('audio');
+                audioElement.id = audioId;
+                audioElement.src = vocabData.audioSrc;
+                audioElement.preload = 'auto';
+                document.body.appendChild(audioElement);
+            }
+
+            // Attempt HTML5 MP3 Audio Playback
+            if (audioElement && audioElement.src) {
+                audioElement.currentTime = 0;
+                const playPromise = audioElement.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        // Playback started successfully
+                    }).catch(err => {
+                        console.warn(`HTML5 Audio fallback for word "${word}":`, err);
+                        speakText(word);
+                    });
+                }
+            } else {
+                speakText(word);
+            }
+
+            // Open popup preview modal
+            openVocab(key);
+        }
+
+        function openVocab(key) {
+            const vocabData = CONTENT_DATA[state.level].vocabulary[key];
+            if (!vocabData) return;
+
+            state.currentModalWord = key;
+
+            document.getElementById('vocabModalIcon').textContent = vocabData.icon;
+            document.getElementById('vocabModalWord').textContent = vocabData.word;
+            document.getElementById('vocabModalPhonetic').textContent = vocabData.phonetic;
+            document.getElementById('vocabModalDefinition').textContent = vocabData.def;
+
+            const modal = document.getElementById('vocabModal');
+            modal.classList.remove('hidden');
+        }
+
+        function closeVocabModal() {
+            playClickSound();
+            document.getElementById('vocabModal').classList.add('hidden');
+            stopSpeech();
+        }
+
+        function speakVocabModalWord() {
+            if (state.currentModalWord) {
+                playVocabAudio(null, state.currentModalWord);
+            }
+        }
+
+        /* ================================================================= */
+        /* FLOW & NAVIGATION LOGIC                                           */
+        /* ================================================================= */
+        function handleStartAssessment(e) {
+            e.preventDefault();
+            initAudio();
+
+            const nameInput = document.getElementById('studentName').value.trim();
+            const levelSelected = document.querySelector('input[name="levelSelect"]:checked').value;
+
+            state.studentName = nameInput || 'Young Explorer';
+            state.level = levelSelected;
+            state.currentQuestionIndex = 0;
+            state.score = 0;
+            state.answers = [];
+
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('assessmentScreen').classList.remove('hidden');
+            document.getElementById('resultsScreen').classList.add('hidden');
+
+            loadPassageAndQuestions();
+        }
+
+        function loadPassageAndQuestions() {
+            stopSpeech();
+            const data = CONTENT_DATA[state.level];
+
+            document.getElementById('displayStudentName').textContent = state.studentName;
+            document.getElementById('learnerBadge').textContent = state.level === 'A1' ? 'A1 Beginner' : 'A2 Elementary';
+            document.getElementById('passageLevelTag').textContent = data.levelTitle;
+            document.getElementById('passageTitle').textContent = data.passageTitle;
+            document.getElementById('passageContent').innerHTML = data.passageHtml;
+
+            updateScoreAndProgress();
+            renderCurrentQuestion();
+        }
+
+        function updateScoreAndProgress() {
+            const data = CONTENT_DATA[state.level];
+            const totalQuestions = data.questions.length;
+            const currentStep = state.currentQuestionIndex + 1;
+
+            document.getElementById('currentScore').textContent = state.score;
+            document.getElementById('questionStepIndicator').textContent = `Question ${Math.min(currentStep, totalQuestions)}/${totalQuestions}`;
+
+            const progressPercent = (state.currentQuestionIndex / totalQuestions) * 100;
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+            document.getElementById('submarineMarker').style.left = `${progressPercent}%`;
+        }
+
+        function renderCurrentQuestion() {
+            const container = document.getElementById('questionContainer');
+            const data = CONTENT_DATA[state.level];
+            const q = data.questions[state.currentQuestionIndex];
+
+            if (!q) {
+                showResultsScreen();
+                return;
+            }
+
+            let html = `
+                <div class="space-y-5">
+                    <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-ocean-dark text-sand flex items-center justify-center font-black text-xl shadow border-2 border-cyan-300">
+                            ${state.currentQuestionIndex + 1}
+                        </span>
+                        <h3 class="text-xl md:text-2xl font-extrabold text-slate-900">${q.prompt}</h3>
+                    </div>
+            `;
+
+            if (q.type === 'mc_image') {
+                html += `<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">`;
+                q.options.forEach((opt, idx) => {
+                    html += `
+                        <button onclick="handleMultipleChoiceAnswer(${idx})" id="opt_${idx}"
+                            class="choice-btn p-5 rounded-2xl flex flex-col items-center justify-center text-center space-y-2 font-extrabold text-lg border-3">
+                            <span class="text-5xl">${opt.icon}</span>
+                            <span>${opt.text}</span>
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+            } else if (q.type === 'true_false') {
+                html += `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 max-w-lg mx-auto">
+                        <button onclick="handleTrueFalseAnswer(true)" id="tf_true"
+                            class="choice-btn p-6 rounded-2xl flex items-center justify-center gap-3 font-extrabold text-2xl border-3">
+                            <span class="text-3xl">👍</span>
+                            <span>TRUE</span>
+                        </button>
+                        <button onclick="handleTrueFalseAnswer(false)" id="tf_false"
+                            class="choice-btn p-6 rounded-2xl flex items-center justify-center gap-3 font-extrabold text-2xl border-3">
+                            <span class="text-3xl">👎</span>
+                            <span>FALSE</span>
+                        </button>
+                    </div>
+                `;
+            } else if (q.type === 'matching') {
+                html += renderMatchingQuestion(q);
+            } else if (q.type === 'mc_context' || q.type === 'context_clues') {
+                html += `<div class="space-y-3 pt-2">`;
+                q.options.forEach((opt, idx) => {
+                    html += `
+                        <button onclick="handleMultipleChoiceAnswer(${idx})" id="opt_${idx}"
+                            class="choice-btn w-full p-4 rounded-2xl flex items-center gap-4 text-left font-extrabold text-lg border-3">
+                            <span class="w-9 h-9 rounded-full border-2 border-slate-300 flex items-center justify-center font-black text-slate-700 bg-slate-100 flex-shrink-0">
+                                ${String.fromCharCode(65 + idx)}
+                            </span>
+                            <span>${opt.text}</span>
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+            } else if (q.type === 'sequence') {
+                html += renderSequenceQuestion(q);
+            }
+
+            html += `
+                <div id="feedbackContainer" class="hidden mt-4 p-4 rounded-2xl text-lg font-bold flex items-center gap-3 shadow-md">
+                </div>
+            </div>`;
+
+            container.innerHTML = html;
+        }
+
+        /* MATCHING QUESTION INTERACTIVE LOGIC */
+        let matchingState = { selectedWord: null, pairs: {} };
+
+        function renderMatchingQuestion(q) {
+            const shuffledMatches = [...q.pairs].map(p => p.match).sort(() => Math.random() - 0.5);
+            matchingState = { selectedWord: null, pairs: {}, targetCount: q.pairs.length };
+
+            let html = `
+                <p class="text-sm font-extrabold text-slate-600 italic">Tap a yellow word on the left, then tap its matching blue meaning on the right!</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div class="space-y-3">
+                        <span class="block text-xs font-black uppercase tracking-wider text-amber-700">Words</span>
+            `;
+
+            q.pairs.forEach((p, idx) => {
+                html += `
+                    <button onclick="selectMatchWord('${p.word}', ${idx})" id="match_word_${idx}"
+                        class="match-left-btn w-full p-3.5 rounded-xl border-3 border-amber-400 bg-amber-100 text-slate-900 font-extrabold text-left hover:bg-amber-200 transition-all shadow-sm">
+                        📌 ${p.word}
+                    </button>
+                `;
+            });
+
+            html += `</div><div class="space-y-3">
+                        <span class="block text-xs font-black uppercase tracking-wider text-ocean-mid">Meanings</span>`;
+
+            shuffledMatches.forEach((mText, idx) => {
+                html += `
+                    <button onclick="selectMatchMeaning('${mText.replace(/'/g, "\\'")}', ${idx})" id="match_meaning_${idx}"
+                        class="match-right-btn w-full p-3.5 rounded-xl border-3 border-cyan-300 bg-cyan-50 text-slate-900 font-extrabold text-left hover:bg-cyan-100 transition-all shadow-sm">
+                        💡 ${mText}
+                    </button>
+                `;
+            });
+
+            html += `</div></div>`;
+            return html;
+        }
+
+        function selectMatchWord(word, idx) {
+            playClickSound();
+            document.querySelectorAll('.match-left-btn').forEach(b => b.classList.remove('ring-4', 'ring-amber-500', 'bg-amber-300'));
+            const btn = document.getElementById(`match_word_${idx}`);
+            btn.classList.add('ring-4', 'ring-amber-500', 'bg-amber-300');
+            matchingState.selectedWord = { word, idx };
+        }
+
+        function selectMatchMeaning(meaningText, idx) {
+            if (!matchingState.selectedWord) return;
+            playClickSound();
+
+            const { word, idx: leftIdx } = matchingState.selectedWord;
+            matchingState.pairs[word] = meaningText;
+
+            const leftBtn = document.getElementById(`match_word_${leftIdx}`);
+            const rightBtn = document.getElementById(`match_meaning_${idx}`);
+
+            leftBtn.classList.remove('ring-4', 'ring-amber-500');
+            leftBtn.classList.add('bg-emerald-200', 'border-emerald-500', 'text-emerald-950');
+            leftBtn.disabled = true;
+
+            rightBtn.classList.add('bg-emerald-200', 'border-emerald-500', 'text-emerald-950');
+            rightBtn.disabled = true;
+
+            matchingState.selectedWord = null;
+
+            const q = CONTENT_DATA[state.level].questions[state.currentQuestionIndex];
+            if (Object.keys(matchingState.pairs).length === q.pairs.length) {
+                let isAllCorrect = true;
+                q.pairs.forEach(p => {
+                    if (matchingState.pairs[p.word] !== p.match) isAllCorrect = false;
+                });
+
+                if (isAllCorrect) {
+                    showFeedback(true, q.explanation);
+                } else {
+                    showFeedback(false, "Almost! Try checking the word meanings again.");
+                }
+            }
+        }
+
+        /* SEQUENCE QUESTION INTERACTIVE LOGIC */
+        let sequenceItems = [];
+
+        function renderSequenceQuestion(q) {
+            if (!sequenceItems.length) {
+                sequenceItems = [...q.steps].sort(() => Math.random() - 0.5);
+            }
+
+            let html = `
+                <p class="text-sm font-extrabold text-slate-600 italic">Tap the arrow buttons to move steps up or down into the correct order!</p>
+                <div id="sequenceListContainer" class="space-y-3 pt-2">
+            `;
+
+            sequenceItems.forEach((stepText, idx) => {
+                html += `
+                    <div class="p-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl flex items-center justify-between gap-3 font-bold text-slate-900 shadow-sm">
+                        <span class="flex-grow">${stepText}</span>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button onclick="moveSequenceStep(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="w-9 h-9 rounded-lg bg-cyan-100 hover:bg-cyan-200 text-ocean-dark font-black disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-lg">
+                                ⬆️
+                            </button>
+                            <button onclick="moveSequenceStep(${idx}, 1)" ${idx === sequenceItems.length - 1 ? 'disabled' : ''} class="w-9 h-9 rounded-lg bg-cyan-100 hover:bg-cyan-200 text-ocean-dark font-black disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-lg">
+                                ⬇️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                </div>
+                <button onclick="checkSequenceAnswer()" class="w-full mt-4 bg-ocean-mid hover:bg-ocean-dark text-white font-black py-3.5 px-6 rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 text-lg">
+                    <i class="fa-solid fa-check-double text-xl"></i>
+                    <span>Check Order</span>
+                </button>
+            `;
+
+            return html;
+        }
+
+        function moveSequenceStep(index, direction) {
+            playClickSound();
+            const targetIdx = index + direction;
+            if (targetIdx < 0 || targetIdx >= sequenceItems.length) return;
+
+            const temp = sequenceItems[index];
+            sequenceItems[index] = sequenceItems[targetIdx];
+            sequenceItems[targetIdx] = temp;
+
+            renderCurrentQuestion();
+        }
+
+        function checkSequenceAnswer() {
+            const q = CONTENT_DATA[state.level].questions[state.currentQuestionIndex];
+            let isCorrect = true;
+
+            for (let i = 0; i < q.steps.length; i++) {
+                if (sequenceItems[i] !== q.steps[i]) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+
+            if (isCorrect) {
+                showFeedback(true, q.explanation);
+            } else {
+                showFeedback(false, "Not quite in order! Read the story passage to check the timeline!");
+            }
+        }
+
+        /* MULTIPLE CHOICE & TRUE/FALSE HANDLERS */
+        function handleMultipleChoiceAnswer(optIdx) {
+            const q = CONTENT_DATA[state.level].questions[state.currentQuestionIndex];
+            const selectedOpt = q.options[optIdx];
+
+            document.querySelectorAll('.choice-btn').forEach((btn, idx) => {
+                btn.disabled = true;
+                if (idx === optIdx) {
+                    if (selectedOpt.correct) {
+                        btn.classList.add('selected-correct');
+                    } else {
+                        btn.classList.add('selected-incorrect');
+                    }
+                }
+            });
+
+            if (selectedOpt.correct) {
+                showFeedback(true, q.explanation);
+            } else {
+                showFeedback(false, "Oops! Re-read the passage and try again.");
+            }
+        }
+
+        function handleTrueFalseAnswer(userVal) {
+            const q = CONTENT_DATA[state.level].questions[state.currentQuestionIndex];
+            const isCorrect = userVal === q.correctAnswer;
+
+            const btnTrue = document.getElementById('tf_true');
+            const btnFalse = document.getElementById('tf_false');
+
+            btnTrue.disabled = true;
+            btnFalse.disabled = true;
+
+            if (userVal === true) {
+                btnTrue.classList.add(isCorrect ? 'selected-correct' : 'selected-incorrect');
+            } else {
+                btnFalse.classList.add(isCorrect ? 'selected-correct' : 'selected-incorrect');
+            }
+
+            if (isCorrect) {
+                showFeedback(true, q.explanation);
+            } else {
+                showFeedback(false, "Not quite! Check the passage text again.");
+            }
+        }
+
+        /* FEEDBACK & STEP ADVANCEMENT */
+        function showFeedback(isCorrect, explanationText) {
+            const feedbackContainer = document.getElementById('feedbackContainer');
+            feedbackContainer.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-950', 'border-emerald-400', 'bg-rose-100', 'text-rose-950', 'border-rose-400');
+
+            if (isCorrect) {
+                playCorrectSound();
+                state.score += 100;
+                state.answers.push(true);
+
+                feedbackContainer.classList.add('bg-emerald-100', 'text-emerald-950', 'border-2', 'border-emerald-400');
+                feedbackContainer.innerHTML = `
+                    <span class="text-3xl flex-shrink-0">🌟</span>
+                    <div class="flex-grow">
+                        <span class="block font-black text-emerald-900 text-lg">Awesome Job! (+100 pts)</span>
+                        <span class="text-sm font-bold text-emerald-800">${explanationText}</span>
+                    </div>
+                    <button onclick="nextQuestion()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 px-5 rounded-xl shadow transition-transform active:scale-95 text-base flex-shrink-0">
+                        Continue ➔
+                    </button>
+                `;
+            } else {
+                playIncorrectSound();
+                state.answers.push(false);
+
+                feedbackContainer.classList.add('bg-rose-100', 'text-rose-950', 'border-2', 'border-rose-400');
+                feedbackContainer.innerHTML = `
+                    <span class="text-3xl flex-shrink-0">💪</span>
+                    <div class="flex-grow">
+                        <span class="block font-black text-rose-900 text-lg">Nice Try!</span>
+                        <span class="text-sm font-bold text-rose-800">${explanationText}</span>
+                    </div>
+                    <button onclick="nextQuestion()" class="bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-2.5 px-5 rounded-xl shadow transition-transform active:scale-95 text-base flex-shrink-0">
+                        Continue ➔
+                    </button>
+                `;
+            }
+
+            updateScoreAndProgress();
+        }
+
+        function nextQuestion() {
+            playClickSound();
+            state.currentQuestionIndex++;
+            sequenceItems = [];
+            updateScoreAndProgress();
+
+            const data = CONTENT_DATA[state.level];
+            if (state.currentQuestionIndex < data.questions.length) {
+                renderCurrentQuestion();
+            } else {
+                showResultsScreen();
+            }
+        }
+
+        /* ================================================================= */
+        /* RESULTS & CELEBRATION SCREEN                                      */
+        /* ================================================================= */
+        function showResultsScreen() {
+            stopSpeech();
+            playFanfareSound();
+
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('assessmentScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+
+            document.getElementById('resultStudentName').textContent = state.studentName;
+            document.getElementById('finalScore').textContent = state.score;
+
+            const correctCount = state.answers.filter(a => a === true).length;
+            const totalCount = state.answers.length;
+            const percent = Math.round((correctCount / totalCount) * 100) || 0;
+
+            document.getElementById('accuracyPercent').textContent = `${percent}%`;
+            document.getElementById('correctRatio').textContent = `${correctCount}/${totalCount}`;
+
+            // Render Stars
+            const starContainer = document.getElementById('starRating');
+            let starHtml = '';
+            const starsEarned = percent >= 80 ? 3 : percent >= 50 ? 2 : 1;
+            for (let i = 0; i < 3; i++) {
+                if (i < starsEarned) {
+                    starHtml += `<i class="fa-solid fa-star text-sand drop-shadow-md animate-bounce" style="animation-delay: ${i * 150}ms"></i>`;
+                } else {
+                    starHtml += `<i class="fa-solid fa-star text-slate-300"></i>`;
+                }
+            }
+            starContainer.innerHTML = starHtml;
+
+            // Render Unlocked Badges
+            const badgesContainer = document.getElementById('badgesContainer');
+            let badgeHtml = `
+                <div class="bg-cyan-100 border border-cyan-300 text-cyan-900 font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-sm">
+                    <span class="text-xl">🌊</span> Ocean Explorer
+                </div>
+            `;
+            if (state.level === 'A1') {
+                badgeHtml += `
+                    <div class="bg-amber-100 border border-amber-300 text-amber-900 font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-sm">
+                        <span class="text-xl">🐬</span> Dolphin Master
+                    </div>
+                `;
+            } else {
+                badgeHtml += `
+                    <div class="bg-emerald-100 border border-emerald-300 text-emerald-900 font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-sm">
+                        <span class="text-xl">🐢</span> Sea Turtle Guardian
+                    </div>
+                `;
+            }
+            if (percent === 100) {
+                badgeHtml += `
+                    <div class="bg-rose-100 border border-rose-300 text-rose-900 font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-sm">
+                        <span class="text-xl">⭐</span> Perfect Score
+                    </div>
+                `;
+            } else if (percent >= 60) {
+                badgeHtml += `
+                    <div class="bg-indigo-100 border border-indigo-300 text-indigo-900 font-extrabold px-3.5 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-sm">
+                        <span class="text-xl">📖</span> Super Reader
+                    </div>
+                `;
+            }
+            badgesContainer.innerHTML = badgeHtml;
+
+            initConfetti();
+        }
+
+        function restartSameLevel() {
+            playClickSound();
+            state.currentQuestionIndex = 0;
+            state.score = 0;
+            state.answers = [];
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('assessmentScreen').classList.remove('hidden');
+            loadPassageAndQuestions();
+        }
+
+        function showWelcomeScreen() {
+            playClickSound();
+            stopSpeech();
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('assessmentScreen').classList.add('hidden');
+            document.getElementById('welcomeScreen').classList.remove('hidden');
+        }
+
+        /* AMBIENT BUBBLES & CONFETTI CANVAS */
+        function createBubbles() {
+            const container = document.getElementById('bubblesContainer');
+            const bubbleCount = 18;
+
+            for (let i = 0; i < bubbleCount; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                const size = Math.random() * 24 + 8;
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.animationDuration = `${Math.random() * 10 + 6}s`;
+                bubble.style.animationDelay = `${Math.random() * 8}s`;
+                container.appendChild(bubble);
+            }
+        }
+
+        function initConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            const particles = [];
+            const colors = ['#ff6b6b', '#ffd166', '#00b4d8', '#22c55e', '#a855f7'];
+
+            for (let i = 0; i < 75; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    vy: Math.random() * 3 + 2,
+                    vx: Math.random() * 2 - 1,
+                    rot: Math.random() * 360
+                });
+            }
+
+            function renderConfetti() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.y += p.vy;
+                    p.x += p.vx;
+                    p.rot += 4;
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.rot * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    ctx.restore();
+
+                    if (p.y > canvas.height) {
+                        p.y = -10;
+                        p.x = Math.random() * canvas.width;
+                    }
+                });
+
+                if (!document.getElementById('resultsScreen').classList.contains('hidden')) {
+                    requestAnimationFrame(renderConfetti);
+                }
+            }
+
+            renderConfetti();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            createBubbles();
+        });
+    </script>
+</body>
+</html>
